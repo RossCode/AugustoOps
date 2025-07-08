@@ -9,6 +9,7 @@ interface TeamMember {
   role: string;
   service_line_id: string;
   service_line_name: string;
+  weekly_capacity?: number;
   [key: string]: any;
 }
 
@@ -120,6 +121,27 @@ function App() {
     }
   };
 
+  const handleUpdateWeeklyCapacity = async (newWeeklyCapacity: number) => {
+    if (!editingMember) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/team-members/${encodeURIComponent(editingMember.full_name)}/weekly-capacity`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weekly_capacity: newWeeklyCapacity
+        })
+      });
+      
+      if (response.ok) {
+        setEditingMember({...editingMember, weekly_capacity: newWeeklyCapacity});
+        fetchTeamMembers(); // Refresh to get updated data
+      }
+    } catch (error) {
+      console.error('Error updating weekly capacity:', error);
+    }
+  };
+
   const filteredMembers = teamMembers.filter(member => {
     const matchesSearch = member.full_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesActiveFilter = showActiveOnly ? member.is_active === 1 : true;
@@ -199,6 +221,17 @@ function App() {
                         ))}
                       </select>
                     </div>
+                    <div className="weekly-capacity-edit">
+                      <label>Weekly Capacity (hours):</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="80"
+                        value={editingMember.weekly_capacity || 0}
+                        onChange={(e) => handleUpdateWeeklyCapacity(parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
                     <div className="active-status-edit">
                       <label>
                         <input
@@ -237,6 +270,10 @@ function App() {
                   <div className="cost-rate">
                     <span className="rate-label">Cost Rate:</span>
                     <span className="rate-value">${member.default_cost_rate}/hour</span>
+                  </div>
+                  <div className="weekly-capacity">
+                    <span className="capacity-label">Weekly Capacity:</span>
+                    <span className="capacity-value">{member.weekly_capacity || 0} hours</span>
                   </div>
                   <div className="card-actions">
                     <button onClick={() => setEditingMember(member)}>Edit Member</button>

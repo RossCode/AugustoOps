@@ -7,7 +7,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
 app.use(cors());
@@ -23,6 +23,7 @@ const createSSHTunnel = () => {
       port: 22,
       username: process.env.SSH_USER,
       privateKey: fs.readFileSync(process.env.SSH_PRIVATE_KEY_PATH),
+      passphrase: process.env.SSH_PRIVATE_KEY_PASSPHRASE,
       dstHost: 'localhost',
       dstPort: 3306,
       localHost: 'localhost',
@@ -57,6 +58,13 @@ const initializeDatabase = async () => {
     });
     
     console.log('Database connected to existing tables');
+    
+    // Test query to verify data exists
+    const [rows] = await db.execute('SELECT COUNT(*) as count FROM augusto_team_members');
+    console.log('Team members count:', rows[0].count);
+    
+    const [sampleRows] = await db.execute('SELECT full_name, default_cost_rate FROM augusto_team_members LIMIT 3');
+    console.log('Sample team members:', sampleRows);
   } catch (error) {
     console.error('Database connection failed:', error);
     process.exit(1);
@@ -165,6 +173,25 @@ app.put('/api/team-members/:name/active-status', async (req, res) => {
   }
 });
 
+app.put('/api/team-members/:name/weekly-capacity', async (req, res) => {
+  const { weekly_capacity } = req.body;
+  
+  try {
+    const [result] = await db.execute(
+      'UPDATE augusto_team_members SET weekly_capacity = ? WHERE full_name = ?',
+      [weekly_capacity, req.params.name]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Team member not found' });
+    } else {
+      res.json({ message: 'Weekly capacity updated successfully' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update weekly capacity' });
+  }
+});
+
 app.post('/api/webhooks/n8n', async (req, res) => {
   console.log('n8n webhook received:', req.body);
   res.json({ message: 'Webhook received successfully' });
@@ -184,7 +211,10 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-app.listen(PORT, async () => {
-  await initializeDatabase();
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  initializeDatabase().catch(error => {
+    console.error('Database initialization failed:', error);
+    console.log('Server is running but database connection failed');
+  });
 });
