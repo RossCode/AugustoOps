@@ -171,6 +171,135 @@ app.delete('/api/service-lines/:id', async (req, res) => {
   }
 });
 
+// Roles endpoints
+app.get('/api/roles', async (req, res) => {
+  try {
+    const [rows] = await db.execute(`
+      SELECT 
+        adr.id,
+        adr.role_name,
+        adr.default_rate,
+        adr.service_line_id,
+        asl.name as service_line_name
+      FROM augusto_default_roles adr
+      LEFT JOIN augusto_service_lines asl ON adr.service_line_id = asl.service_line_id
+      ORDER BY adr.role_name
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching roles:', error);
+    res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+});
+
+app.post('/api/roles', async (req, res) => {
+  const { role_name, default_rate, service_line_id } = req.body;
+  
+  if (!role_name || !default_rate || !service_line_id) {
+    return res.status(400).json({ error: 'Role name, default rate, and service line ID are required' });
+  }
+  
+  try {
+    // Validate that service_line_id exists
+    const [serviceLineCheck] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_service_lines WHERE service_line_id = ?',
+      [service_line_id]
+    );
+    
+    if (serviceLineCheck[0].count === 0) {
+      return res.status(400).json({ error: 'Invalid service line ID' });
+    }
+    
+    const [result] = await db.execute(
+      'INSERT INTO augusto_default_roles (role_name, default_rate, service_line_id) VALUES (?, ?, ?)',
+      [role_name, default_rate, service_line_id]
+    );
+    
+    res.status(201).json({ 
+      message: 'Role created successfully',
+      role_id: result.insertId
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: 'Role name already exists' });
+    } else {
+      console.error('Error creating role:', error);
+      res.status(500).json({ error: 'Failed to create role' });
+    }
+  }
+});
+
+app.put('/api/roles/:id', async (req, res) => {
+  const { role_name, default_rate, service_line_id } = req.body;
+  const roleId = req.params.id;
+  
+  if (!role_name || !default_rate || !service_line_id) {
+    return res.status(400).json({ error: 'Role name, default rate, and service line ID are required' });
+  }
+  
+  try {
+    // Validate that service_line_id exists
+    const [serviceLineCheck] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_service_lines WHERE service_line_id = ?',
+      [service_line_id]
+    );
+    
+    if (serviceLineCheck[0].count === 0) {
+      return res.status(400).json({ error: 'Invalid service line ID' });
+    }
+    
+    const [result] = await db.execute(
+      'UPDATE augusto_default_roles SET role_name = ?, default_rate = ?, service_line_id = ? WHERE id = ?',
+      [role_name, default_rate, service_line_id, roleId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Role not found' });
+    } else {
+      res.json({ message: 'Role updated successfully' });
+    }
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: 'Role name already exists' });
+    } else {
+      console.error('Error updating role:', error);
+      res.status(500).json({ error: 'Failed to update role' });
+    }
+  }
+});
+
+app.delete('/api/roles/:id', async (req, res) => {
+  const roleId = req.params.id;
+  
+  try {
+    // Check if role is being used by any team members
+    const [teamMembers] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_team_members WHERE role = (SELECT role_name FROM augusto_default_roles WHERE id = ?)',
+      [roleId]
+    );
+    
+    if (teamMembers[0].count > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete role. It is currently assigned to ${teamMembers[0].count} team member(s).` 
+      });
+    }
+    
+    const [result] = await db.execute(
+      'DELETE FROM augusto_default_roles WHERE id = ?',
+      [roleId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Role not found' });
+    } else {
+      res.json({ message: 'Role deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting role:', error);
+    res.status(500).json({ error: 'Failed to delete role' });
+  }
+});
+
 app.get('/api/team-members', async (req, res) => {
   try {
     const [rows] = await db.execute(`

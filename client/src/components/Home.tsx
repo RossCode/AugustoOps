@@ -30,6 +30,15 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
+          <div className="tool-card">
+            <div className="tool-icon">👔</div>
+            <h3>Roles</h3>
+            <p>Define and manage default roles and job functions</p>
+            <Link to="/roles" className="tool-link">
+              Manage Roles
+            </Link>
+          </div>
+
           <div className="tool-card coming-soon">
             <div className="tool-icon">📊</div>
             <h3>Project Analytics</h3>
