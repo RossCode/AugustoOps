@@ -83,10 +83,91 @@ app.get('/api/test', async (req, res) => {
 
 app.get('/api/service-lines', async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT * FROM augusto_service_lines ORDER BY name');
+    const [rows] = await db.execute('SELECT * FROM augusto_service_lines ORDER BY service_line_id');
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch service lines' });
+  }
+});
+
+app.post('/api/service-lines', async (req, res) => {
+  const { service_line_id, name } = req.body;
+  
+  if (!service_line_id || !name) {
+    return res.status(400).json({ error: 'Service line ID and name are required' });
+  }
+  
+  try {
+    const [result] = await db.execute(
+      'INSERT INTO augusto_service_lines (service_line_id, name) VALUES (?, ?)',
+      [service_line_id, name]
+    );
+    
+    res.status(201).json({ 
+      message: 'Service line created successfully',
+      service_line_id: service_line_id
+    });
+  } catch (error) {
+    if (error.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ error: 'Service line ID already exists' });
+    } else {
+      res.status(500).json({ error: 'Failed to create service line' });
+    }
+  }
+});
+
+app.put('/api/service-lines/:id', async (req, res) => {
+  const { name } = req.body;
+  const serviceLineId = req.params.id;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Service line name is required' });
+  }
+  
+  try {
+    const [result] = await db.execute(
+      'UPDATE augusto_service_lines SET name = ? WHERE service_line_id = ?',
+      [name, serviceLineId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Service line not found' });
+    } else {
+      res.json({ message: 'Service line updated successfully' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update service line' });
+  }
+});
+
+app.delete('/api/service-lines/:id', async (req, res) => {
+  const serviceLineId = req.params.id;
+  
+  try {
+    // Check if service line is being used by any team members
+    const [teamMembers] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_team_members WHERE service_line_id = ?',
+      [serviceLineId]
+    );
+    
+    if (teamMembers[0].count > 0) {
+      return res.status(409).json({ 
+        error: `Cannot delete service line. It is currently assigned to ${teamMembers[0].count} team member(s).` 
+      });
+    }
+    
+    const [result] = await db.execute(
+      'DELETE FROM augusto_service_lines WHERE service_line_id = ?',
+      [serviceLineId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Service line not found' });
+    } else {
+      res.json({ message: 'Service line deleted successfully' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete service line' });
   }
 });
 

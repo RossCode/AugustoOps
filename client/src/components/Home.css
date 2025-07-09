@@ -1,0 +1,141 @@
+.home-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.home-header {
+  text-align: center;
+  padding: 4rem 2rem 2rem;
+  color: white;
+}
+
+.home-header h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.home-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin-bottom: 0;
+}
+
+.home-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.tool-card {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: center;
+  position: relative;
+}
+
+.tool-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.tool-card.coming-soon {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.tool-card.coming-soon:hover {
+  transform: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tool-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.tool-card h3 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.tool-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.tool-link {
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  text-decoration: none;
+  padding: 0.8rem 2rem;
+  border-radius: 25px;
+  transition: background 0.3s ease;
+  font-weight: 600;
+}
+
+.tool-link:hover {
+  background: #5a67d8;
+  text-decoration: none;
+  color: white;
+}
+
+.coming-soon-badge {
+  background: #f7fafc;
+  border: 2px solid #e2e8f0;
+  color: #718096;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.home-footer {
+  text-align: center;
+  padding: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .home-header h1 {
+    font-size: 2rem;
+  }
+  
+  .home-header p {
+    font-size: 1rem;
+  }
+  
+  .tools-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .tool-card {
+    padding: 1.5rem;
+  }
+  
+  .home-content {
+    padding: 1rem;
+  }
+}
