@@ -192,6 +192,25 @@ app.put('/api/team-members/:name/weekly-capacity', async (req, res) => {
   }
 });
 
+app.put('/api/team-members/:name/internal-rate', async (req, res) => {
+  const { internal_rate } = req.body;
+  
+  try {
+    const [result] = await db.execute(
+      'UPDATE augusto_team_members SET internal_rate = ? WHERE full_name = ?',
+      [internal_rate, req.params.name]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Team member not found' });
+    } else {
+      res.json({ message: 'Internal rate updated successfully' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update internal rate' });
+  }
+});
+
 app.post('/api/webhooks/n8n', async (req, res) => {
   console.log('n8n webhook received:', req.body);
   res.json({ message: 'Webhook received successfully' });

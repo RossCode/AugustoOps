@@ -5,6 +5,7 @@ interface TeamMember {
   id: number;
   full_name: string;
   default_cost_rate: number;
+  internal_rate?: number;
   is_active: number;
   role: string;
   service_line_id: string;
@@ -142,6 +143,27 @@ function App() {
     }
   };
 
+  const handleUpdateInternalRate = async (newInternalRate: number) => {
+    if (!editingMember) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/team-members/${encodeURIComponent(editingMember.full_name)}/internal-rate`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          internal_rate: newInternalRate
+        })
+      });
+      
+      if (response.ok) {
+        setEditingMember({...editingMember, internal_rate: newInternalRate});
+        fetchTeamMembers(); // Refresh to get updated data
+      }
+    } catch (error) {
+      console.error('Error updating internal rate:', error);
+    }
+  };
+
   const filteredMembers = teamMembers.filter(member => {
     const matchesSearch = member.full_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesActiveFilter = showActiveOnly ? member.is_active === 1 : true;
@@ -207,6 +229,16 @@ function App() {
                         required
                       />
                     </div>
+                    <div className="cost-rate-edit">
+                      <label>Internal Rate ($/hour):</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editingMember.internal_rate || 0}
+                        onChange={(e) => handleUpdateInternalRate(parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
                     <div className="service-line-edit">
                       <label>Service Line:</label>
                       <select
@@ -270,6 +302,10 @@ function App() {
                   <div className="cost-rate">
                     <span className="rate-label">Cost Rate:</span>
                     <span className="rate-value">${member.default_cost_rate}/hour</span>
+                  </div>
+                  <div className="cost-rate">
+                    <span className="rate-label">Internal Rate:</span>
+                    <span className="rate-value">${member.internal_rate || 0}/hour</span>
                   </div>
                   <div className="weekly-capacity">
                     <span className="capacity-label">Weekly Capacity:</span>
