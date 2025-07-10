@@ -18,6 +18,9 @@ digitalocean_augusto.pub
 AugustoReportingKey*
 AugustoreportingKey*
 
+# SSH tunnel scripts (contain credentials)
+restart-tunnel*.sh
+
 # Logs
 *.log
 nohup.out
