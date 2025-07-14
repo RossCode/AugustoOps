@@ -45,6 +45,14 @@ interface ProjectDetails {
   project_data: ProjectData[];
 }
 
+interface AvailableTeamMember {
+  id: number;
+  full_name: string;
+  role: string;
+  default_cost_rate: string;
+  service_line_id: string;
+}
+
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 const Projects: React.FC = () => {
@@ -53,6 +61,11 @@ const Projects: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [selectedProject, setSelectedProject] = useState<ProjectDetails | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [availableTeamMembers, setAvailableTeamMembers] = useState<AvailableTeamMember[]>([]);
+  const [showAddDataForm, setShowAddDataForm] = useState(false);
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [newProjectData, setNewProjectData] = useState({ name: '', value: '' });
+  const [newTeamMember, setNewTeamMember] = useState({ augusto_team_member_id: '', cost_rate: '', sow_hours: '' });
 
   useEffect(() => {
     fetchProjects();
@@ -87,9 +100,132 @@ const Projects: React.FC = () => {
       const data = await response.json();
       setSelectedProject(data);
       setShowDetails(true);
+      
+      // Fetch available team members for assignment
+      fetchAvailableTeamMembers(projectCode);
     } catch (error) {
       console.error('Error fetching project details:', error);
       alert('Error loading project details');
+    }
+  };
+
+  const fetchAvailableTeamMembers = async (projectCode: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/team-members-for-assignment/${projectCode}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setAvailableTeamMembers(data);
+    } catch (error) {
+      console.error('Error fetching available team members:', error);
+      setAvailableTeamMembers([]);
+    }
+  };
+
+  const handleAddProjectData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject || !newProjectData.name) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProjectData)
+      });
+
+      if (response.ok) {
+        setNewProjectData({ name: '', value: '' });
+        setShowAddDataForm(false);
+        // Refresh project details
+        fetchProjectDetails(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to add project data'}`);
+      }
+    } catch (error) {
+      console.error('Error adding project data:', error);
+      alert('Error adding project data');
+    }
+  };
+
+  const handleAddTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject || !newTeamMember.augusto_team_member_id || !newTeamMember.cost_rate) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/team-members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          augusto_team_member_id: parseInt(newTeamMember.augusto_team_member_id),
+          cost_rate: parseFloat(newTeamMember.cost_rate),
+          sow_hours: newTeamMember.sow_hours ? parseInt(newTeamMember.sow_hours) : null
+        })
+      });
+
+      if (response.ok) {
+        setNewTeamMember({ augusto_team_member_id: '', cost_rate: '', sow_hours: '' });
+        setShowAddMemberForm(false);
+        // Refresh project details and available team members
+        fetchProjectDetails(selectedProject.project.code);
+        fetchAvailableTeamMembers(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to assign team member'}`);
+      }
+    } catch (error) {
+      console.error('Error assigning team member:', error);
+      alert('Error assigning team member');
+    }
+  };
+
+  const handleDeleteProjectData = async (dataId: number) => {
+    if (!selectedProject || !window.confirm('Are you sure you want to delete this project data?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/data/${dataId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // Refresh project details
+        fetchProjectDetails(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to delete project data'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project data:', error);
+      alert('Error deleting project data');
+    }
+  };
+
+  const handleRemoveTeamMember = async (memberId: number) => {
+    if (!selectedProject || !window.confirm('Are you sure you want to remove this team member from the project?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/team-members/${memberId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // Refresh project details and available team members
+        fetchProjectDetails(selectedProject.project.code);
+        fetchAvailableTeamMembers(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to remove team member'}`);
+      }
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      alert('Error removing team member');
     }
   };
 
@@ -116,7 +252,7 @@ const Projects: React.FC = () => {
 
       <header className="projects-header">
         <h1>Projects Dashboard</h1>
-        <p>Manage project data and team assignments</p>
+        <p>Manage project data and team assignments for client projects (300XXX codes only)</p>
       </header>
 
       <main className="projects-content">
@@ -242,7 +378,71 @@ const Projects: React.FC = () => {
               </div>
 
               <div className="team-members-section">
-                <h3>Team Members ({selectedProject.team_members.length})</h3>
+                <div className="section-header-with-action">
+                  <h3>Team Members ({selectedProject.team_members.length})</h3>
+                  <button 
+                    className="add-button"
+                    onClick={() => setShowAddMemberForm(!showAddMemberForm)}
+                  >
+                    {showAddMemberForm ? 'Cancel' : 'Add Team Member'}
+                  </button>
+                </div>
+                
+                {showAddMemberForm && (
+                  <div className="add-form">
+                    <h4>Add Team Member</h4>
+                    <form onSubmit={handleAddTeamMember}>
+                      <div className="form-group">
+                        <label>Team Member:</label>
+                        <select
+                          value={newTeamMember.augusto_team_member_id}
+                          onChange={(e) => {
+                            const memberId = e.target.value;
+                            const member = availableTeamMembers.find(m => m.id.toString() === memberId);
+                            setNewTeamMember({
+                              ...newTeamMember, 
+                              augusto_team_member_id: memberId,
+                              cost_rate: member ? member.default_cost_rate : ''
+                            });
+                          }}
+                          required
+                        >
+                          <option value="">Select a team member</option>
+                          {availableTeamMembers.map(member => (
+                            <option key={member.id} value={member.id}>
+                              {member.full_name} - {member.role}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Cost Rate ($):</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newTeamMember.cost_rate}
+                          onChange={(e) => setNewTeamMember({...newTeamMember, cost_rate: e.target.value})}
+                          required
+                          placeholder="e.g., 150.00"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>SOW Hours (optional):</label>
+                        <input
+                          type="number"
+                          value={newTeamMember.sow_hours}
+                          onChange={(e) => setNewTeamMember({...newTeamMember, sow_hours: e.target.value})}
+                          placeholder="e.g., 40"
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button type="submit">Add Team Member</button>
+                        <button type="button" onClick={() => setShowAddMemberForm(false)}>Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+                
                 {selectedProject.team_members.length > 0 ? (
                   <div className="team-members-table">
                     <table>
@@ -252,6 +452,7 @@ const Projects: React.FC = () => {
                           <th>Role</th>
                           <th>Cost Rate</th>
                           <th>SOW Hours</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -261,6 +462,15 @@ const Projects: React.FC = () => {
                             <td>{member.role}</td>
                             <td>${member.cost_rate}</td>
                             <td>{member.sow_hours || 'N/A'}</td>
+                            <td>
+                              <button 
+                                className="delete-button-small"
+                                onClick={() => handleRemoveTeamMember(member.augusto_team_member_id)}
+                                title="Remove from project"
+                              >
+                                Remove
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -272,7 +482,47 @@ const Projects: React.FC = () => {
               </div>
 
               <div className="project-data-section">
-                <h3>Project Data ({selectedProject.project_data.length})</h3>
+                <div className="section-header-with-action">
+                  <h3>Project Data ({selectedProject.project_data.length})</h3>
+                  <button 
+                    className="add-button"
+                    onClick={() => setShowAddDataForm(!showAddDataForm)}
+                  >
+                    {showAddDataForm ? 'Cancel' : 'Add Data'}
+                  </button>
+                </div>
+                
+                {showAddDataForm && (
+                  <div className="add-form">
+                    <h4>Add Project Data</h4>
+                    <form onSubmit={handleAddProjectData}>
+                      <div className="form-group">
+                        <label>Name:</label>
+                        <input
+                          type="text"
+                          value={newProjectData.name}
+                          onChange={(e) => setNewProjectData({...newProjectData, name: e.target.value})}
+                          required
+                          placeholder="e.g., PO Number, Manager, Budget Note"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Value:</label>
+                        <input
+                          type="text"
+                          value={newProjectData.value}
+                          onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
+                          placeholder="e.g., 12345, John Smith, Additional requirements"
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button type="submit">Add Data</button>
+                        <button type="button" onClick={() => setShowAddDataForm(false)}>Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+                
                 {selectedProject.project_data.length > 0 ? (
                   <div className="project-data-table">
                     <table>
@@ -280,6 +530,7 @@ const Projects: React.FC = () => {
                         <tr>
                           <th>Name</th>
                           <th>Value</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -287,6 +538,15 @@ const Projects: React.FC = () => {
                           <tr key={data.id}>
                             <td>{data.name}</td>
                             <td>{data.value || 'N/A'}</td>
+                            <td>
+                              <button 
+                                className="delete-button-small"
+                                onClick={() => handleDeleteProjectData(data.id)}
+                                title="Delete project data"
+                              >
+                                Delete
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

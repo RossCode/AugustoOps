@@ -354,6 +354,128 @@
   margin-bottom: 2rem;
 }
 
+.section-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header-with-action h3 {
+  color: #1f2937;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.section-header-with-action .add-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.section-header-with-action .add-button:hover {
+  background: #059669;
+}
+
+.add-form {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.add-form h4 {
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.add-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.add-form .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.add-form .form-group input,
+.add-form .form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.add-form .form-group input:focus,
+.add-form .form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.add-form .form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.add-form .form-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.add-form .form-actions button[type="submit"] {
+  background: #3b82f6;
+  color: white;
+}
+
+.add-form .form-actions button[type="submit"]:hover {
+  background: #2563eb;
+}
+
+.add-form .form-actions button[type="button"] {
+  background: #6b7280;
+  color: white;
+}
+
+.add-form .form-actions button[type="button"]:hover {
+  background: #4b5563;
+}
+
+.delete-button-small {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.delete-button-small:hover {
+  background: #dc2626;
+}
+
 .team-members-section h3, .project-data-section h3 {
   color: #1f2937;
   margin-bottom: 1rem;

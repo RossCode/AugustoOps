@@ -88,7 +88,12 @@ app.get('/api/projects', async (req, res) => {
   
   try {
     // Query active projects with team member assignments and project data
-    let whereClause = 'WHERE hp.active = 1';
+    // Filter out Augusto Digital projects and non-300XXX project codes
+    let whereClause = `WHERE hp.active = 1 
+      AND hp.code LIKE '300%'
+      AND (hc.name != 'Augusto Digital' OR hc.name IS NULL)
+      AND (hp.client_name != 'Augusto Digital' OR hp.client_name IS NULL)`;
+    
     if (!showInactive) {
       whereClause += ' AND hp.is_active = 1';
     }
@@ -136,13 +141,17 @@ app.get('/api/projects/:code', async (req, res) => {
   
   try {
     // Get project basic info with client information
+    // Apply same filtering as projects list for consistency
     const [projectInfo] = await db.execute(`
       SELECT 
         hp.*,
         COALESCE(hp.client_name, hc.name, CONCAT('Client ', hp.client_id)) as resolved_client_name
       FROM harvest_projects hp
       LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
-      WHERE hp.code = ?
+      WHERE hp.code = ? 
+        AND hp.code LIKE '300%'
+        AND (hc.name != 'Augusto Digital' OR hc.name IS NULL)
+        AND (hp.client_name != 'Augusto Digital' OR hp.client_name IS NULL)
     `, [projectCode]);
     
     if (projectInfo.length === 0) {
@@ -174,6 +183,222 @@ app.get('/api/projects/:code', async (req, res) => {
   } catch (error) {
     console.error('Error fetching project details:', error);
     res.status(500).json({ error: 'Failed to fetch project details' });
+  }
+});
+
+// Add project metadata
+app.post('/api/projects/:code/data', async (req, res) => {
+  const projectCode = req.params.code;
+  const { name, value } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Data name is required' });
+  }
+  
+  try {
+    // Verify project exists and meets filtering criteria
+    const [projectCheck] = await db.execute(`
+      SELECT COUNT(*) as count FROM harvest_projects hp
+      LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
+      WHERE hp.code = ? 
+        AND hp.code LIKE '300%'
+        AND (hc.name != 'Augusto Digital' OR hc.name IS NULL)
+        AND (hp.client_name != 'Augusto Digital' OR hp.client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectCheck[0].count === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const [result] = await db.execute(
+      'INSERT INTO augusto_project_data (project_code, name, value) VALUES (?, ?, ?)',
+      [projectCode, name, value || null]
+    );
+    
+    res.status(201).json({ 
+      message: 'Project data created successfully',
+      data_id: result.insertId
+    });
+  } catch (error) {
+    console.error('Error creating project data:', error);
+    res.status(500).json({ error: 'Failed to create project data' });
+  }
+});
+
+// Add team member assignment to project
+app.post('/api/projects/:code/team-members', async (req, res) => {
+  const projectCode = req.params.code;
+  const { augusto_team_member_id, cost_rate, sow_hours } = req.body;
+  
+  if (!augusto_team_member_id || !cost_rate) {
+    return res.status(400).json({ error: 'Team member ID and cost rate are required' });
+  }
+  
+  try {
+    // Verify project exists and meets filtering criteria
+    const [projectCheck] = await db.execute(`
+      SELECT COUNT(*) as count FROM harvest_projects hp
+      LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
+      WHERE hp.code = ? 
+        AND hp.code LIKE '300%'
+        AND (hc.name != 'Augusto Digital' OR hc.name IS NULL)
+        AND (hp.client_name != 'Augusto Digital' OR hp.client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectCheck[0].count === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // Verify team member exists
+    const [memberCheck] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_team_members WHERE id = ?',
+      [augusto_team_member_id]
+    );
+    
+    if (memberCheck[0].count === 0) {
+      return res.status(404).json({ error: 'Team member not found' });
+    }
+    
+    // Check if assignment already exists
+    const [existingCheck] = await db.execute(
+      'SELECT COUNT(*) as count FROM augusto_team_member_projects WHERE augusto_team_member_id = ? AND project_code = ?',
+      [augusto_team_member_id, projectCode]
+    );
+    
+    if (existingCheck[0].count > 0) {
+      return res.status(409).json({ error: 'Team member is already assigned to this project' });
+    }
+    
+    const [result] = await db.execute(
+      'INSERT INTO augusto_team_member_projects (augusto_team_member_id, project_code, cost_rate, sow_hours) VALUES (?, ?, ?, ?)',
+      [augusto_team_member_id, projectCode, cost_rate, sow_hours || null]
+    );
+    
+    res.status(201).json({ 
+      message: 'Team member assigned successfully'
+    });
+  } catch (error) {
+    console.error('Error assigning team member:', error);
+    res.status(500).json({ error: 'Failed to assign team member' });
+  }
+});
+
+// Update project metadata
+app.put('/api/projects/:code/data/:dataId', async (req, res) => {
+  const { code: projectCode, dataId } = req.params;
+  const { name, value } = req.body;
+  
+  if (!name) {
+    return res.status(400).json({ error: 'Data name is required' });
+  }
+  
+  try {
+    const [result] = await db.execute(
+      'UPDATE augusto_project_data SET name = ?, value = ? WHERE id = ? AND project_code = ?',
+      [name, value || null, dataId, projectCode]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Project data not found' });
+    } else {
+      res.json({ message: 'Project data updated successfully' });
+    }
+  } catch (error) {
+    console.error('Error updating project data:', error);
+    res.status(500).json({ error: 'Failed to update project data' });
+  }
+});
+
+// Delete project metadata
+app.delete('/api/projects/:code/data/:dataId', async (req, res) => {
+  const { code: projectCode, dataId } = req.params;
+  
+  try {
+    const [result] = await db.execute(
+      'DELETE FROM augusto_project_data WHERE id = ? AND project_code = ?',
+      [dataId, projectCode]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Project data not found' });
+    } else {
+      res.json({ message: 'Project data deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting project data:', error);
+    res.status(500).json({ error: 'Failed to delete project data' });
+  }
+});
+
+// Update team member assignment
+app.put('/api/projects/:code/team-members/:memberId', async (req, res) => {
+  const { code: projectCode, memberId } = req.params;
+  const { cost_rate, sow_hours } = req.body;
+  
+  if (!cost_rate) {
+    return res.status(400).json({ error: 'Cost rate is required' });
+  }
+  
+  try {
+    const [result] = await db.execute(
+      'UPDATE augusto_team_member_projects SET cost_rate = ?, sow_hours = ? WHERE augusto_team_member_id = ? AND project_code = ?',
+      [cost_rate, sow_hours || null, memberId, projectCode]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Team member assignment not found' });
+    } else {
+      res.json({ message: 'Team member assignment updated successfully' });
+    }
+  } catch (error) {
+    console.error('Error updating team member assignment:', error);
+    res.status(500).json({ error: 'Failed to update team member assignment' });
+  }
+});
+
+// Remove team member assignment
+app.delete('/api/projects/:code/team-members/:memberId', async (req, res) => {
+  const { code: projectCode, memberId } = req.params;
+  
+  try {
+    const [result] = await db.execute(
+      'DELETE FROM augusto_team_member_projects WHERE augusto_team_member_id = ? AND project_code = ?',
+      [memberId, projectCode]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Team member assignment not found' });
+    } else {
+      res.json({ message: 'Team member assignment removed successfully' });
+    }
+  } catch (error) {
+    console.error('Error removing team member assignment:', error);
+    res.status(500).json({ error: 'Failed to remove team member assignment' });
+  }
+});
+
+// Get available team members for assignment
+app.get('/api/team-members-for-assignment/:projectCode', async (req, res) => {
+  const projectCode = req.params.projectCode;
+  
+  try {
+    // Get team members not already assigned to this project
+    const [availableMembers] = await db.execute(`
+      SELECT atm.id, atm.full_name, atm.role, atm.default_cost_rate, atm.service_line_id
+      FROM augusto_team_members atm
+      WHERE atm.is_active = 1 
+      AND atm.id NOT IN (
+        SELECT augusto_team_member_id 
+        FROM augusto_team_member_projects 
+        WHERE project_code = ?
+      )
+      ORDER BY atm.full_name
+    `, [projectCode]);
+    
+    res.json(availableMembers);
+  } catch (error) {
+    console.error('Error fetching available team members:', error);
+    res.status(500).json({ error: 'Failed to fetch available team members' });
   }
 });
 
