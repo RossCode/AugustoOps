@@ -39,6 +39,15 @@ const Home: React.FC = () => {
             </Link>
           </div>
 
+          <div className="tool-card">
+            <div className="tool-icon">📋</div>
+            <h3>Projects</h3>
+            <p>Manage project data, team assignments, and project details</p>
+            <Link to="/projects" className="tool-link">
+              View Projects
+            </Link>
+          </div>
+
           <div className="tool-card coming-soon">
             <div className="tool-icon">📊</div>
             <h3>Project Analytics</h3>

@@ -81,6 +81,102 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+
+// Projects dashboard endpoints
+app.get('/api/projects', async (req, res) => {
+  const showInactive = req.query.show_inactive === 'true';
+  
+  try {
+    // Query active projects with team member assignments and project data
+    let whereClause = 'WHERE hp.active = 1';
+    if (!showInactive) {
+      whereClause += ' AND hp.is_active = 1';
+    }
+    
+    const [projects] = await db.execute(`
+      SELECT 
+        hp.id,
+        hp.name,
+        hp.code,
+        COALESCE(hp.client_name, hc.name, CONCAT('Client ', hp.client_id)) as client_name,
+        hp.active,
+        hp.is_active,
+        hp.billable,
+        hp.is_fixed_fee,
+        hp.budget,
+        hp.fee,
+        hp.budget_hours,
+        hp.starts_on,
+        hp.ends_on,
+        hp.created_at,
+        hp.updated_at,
+        COUNT(DISTINCT atmp.augusto_team_member_id) as team_member_count,
+        COUNT(DISTINCT apd.id) as project_data_count
+      FROM harvest_projects hp
+      LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
+      LEFT JOIN augusto_team_member_projects atmp ON hp.code = atmp.project_code
+      LEFT JOIN augusto_project_data apd ON hp.code = apd.project_code
+      ${whereClause}
+      GROUP BY hp.id, hp.name, hp.code, hp.client_name, hc.name, hp.client_id, hp.active, hp.is_active, 
+               hp.billable, hp.is_fixed_fee, hp.budget, hp.fee, hp.budget_hours,
+               hp.starts_on, hp.ends_on, hp.created_at, hp.updated_at
+      ORDER BY hp.updated_at DESC
+    `);
+    
+    res.json(projects);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ error: 'Failed to fetch projects' });
+  }
+});
+
+// Get project details with team members and project data
+app.get('/api/projects/:code', async (req, res) => {
+  const projectCode = req.params.code;
+  
+  try {
+    // Get project basic info with client information
+    const [projectInfo] = await db.execute(`
+      SELECT 
+        hp.*,
+        COALESCE(hp.client_name, hc.name, CONCAT('Client ', hp.client_id)) as resolved_client_name
+      FROM harvest_projects hp
+      LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
+      WHERE hp.code = ?
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // Get team member assignments
+    const [teamMembers] = await db.execute(`
+      SELECT 
+        atmp.*,
+        atm.full_name,
+        atm.role,
+        atm.service_line_id
+      FROM augusto_team_member_projects atmp
+      JOIN augusto_team_members atm ON atmp.augusto_team_member_id = atm.id
+      WHERE atmp.project_code = ?
+    `, [projectCode]);
+    
+    // Get project data
+    const [projectData] = await db.execute(`
+      SELECT * FROM augusto_project_data WHERE project_code = ?
+    `, [projectCode]);
+    
+    res.json({
+      project: projectInfo[0],
+      team_members: teamMembers,
+      project_data: projectData
+    });
+  } catch (error) {
+    console.error('Error fetching project details:', error);
+    res.status(500).json({ error: 'Failed to fetch project details' });
+  }
+});
+
 app.get('/api/service-lines', async (req, res) => {
   try {
     const [rows] = await db.execute('SELECT * FROM augusto_service_lines ORDER BY service_line_id');
