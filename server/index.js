@@ -125,7 +125,7 @@ app.get('/api/projects', async (req, res) => {
       GROUP BY hp.id, hp.name, hp.code, hp.client_name, hc.name, hp.client_id, hp.active, hp.is_active, 
                hp.billable, hp.is_fixed_fee, hp.budget, hp.fee, hp.budget_hours,
                hp.starts_on, hp.ends_on, hp.created_at, hp.updated_at
-      ORDER BY hp.updated_at DESC
+      ORDER BY COALESCE(hp.client_name, hc.name, CONCAT('Client ', hp.client_id)), hp.code
     `);
     
     res.json(projects);

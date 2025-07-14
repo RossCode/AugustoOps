@@ -242,6 +242,19 @@ const Projects: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Group projects by client
+  const groupedProjects = projects.reduce((groups: { [key: string]: Project[] }, project) => {
+    const clientName = project.client_name || 'Unknown Client';
+    if (!groups[clientName]) {
+      groups[clientName] = [];
+    }
+    groups[clientName].push(project);
+    return groups;
+  }, {});
+
+  // Sort client names
+  const sortedClientNames = Object.keys(groupedProjects).sort();
+
   if (loading) return <div className="loading">Loading projects...</div>;
 
   return (
@@ -252,7 +265,7 @@ const Projects: React.FC = () => {
 
       <header className="projects-header">
         <h1>Projects Dashboard</h1>
-        <p>Manage project data and team assignments for client projects (300XXX codes only)</p>
+        <p>Manage project data and team assignments for client projects (300XXX codes only) • Organized by client</p>
       </header>
 
       <main className="projects-content">
@@ -272,65 +285,74 @@ const Projects: React.FC = () => {
           </div>
         </div>
 
-        <div className="projects-grid">
-          {projects.map((project) => (
-            <div key={project.id} className="project-card">
-              <div className="project-header">
-                <h3>{project.name}</h3>
-                <div className="project-code">{project.code}</div>
+        <div className="projects-by-client">
+          {sortedClientNames.map((clientName) => (
+            <div key={clientName} className="client-group">
+              <div className="client-header">
+                <h2>{clientName}</h2>
+                <span className="project-count-badge">
+                  {groupedProjects[clientName].length} project{groupedProjects[clientName].length !== 1 ? 's' : ''}
+                </span>
               </div>
               
-              <div className="project-info">
-                {project.client_name && (
-                  <div className="project-client">Client: {project.client_name}</div>
-                )}
-                
-                <div className="project-details">
-                  <div className="project-status">
-                    <span className={`status-badge ${project.is_active ? 'active' : 'inactive'}`}>
-                      {project.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    {project.billable ? (
-                      <span className="billable-badge">Billable</span>
-                    ) : (
-                      <span className="non-billable-badge">Non-billable</span>
-                    )}
-                    {project.is_fixed_fee ? (
-                      <span className="fee-badge">Fixed Fee</span>
-                    ) : (
-                      <span className="hourly-badge">Hourly</span>
-                    )}
+              <div className="projects-grid">
+                {groupedProjects[clientName].map((project) => (
+                  <div key={project.id} className="project-card">
+                    <div className="project-header">
+                      <h3>{project.name}</h3>
+                      <div className="project-code">{project.code}</div>
+                    </div>
+                    
+                    <div className="project-info">
+                      <div className="project-details">
+                        <div className="project-status">
+                          <span className={`status-badge ${project.is_active ? 'active' : 'inactive'}`}>
+                            {project.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                          {project.billable ? (
+                            <span className="billable-badge">Billable</span>
+                          ) : (
+                            <span className="non-billable-badge">Non-billable</span>
+                          )}
+                          {project.is_fixed_fee ? (
+                            <span className="fee-badge">Fixed Fee</span>
+                          ) : (
+                            <span className="hourly-badge">Hourly</span>
+                          )}
+                        </div>
+                        
+                        <div className="project-budget">
+                          {project.is_fixed_fee ? (
+                            <div>Fee: {formatCurrency(project.fee)}</div>
+                          ) : (
+                            <div>Budget: {formatCurrency(project.budget)}</div>
+                          )}
+                          {project.budget_hours && (
+                            <div>Hours: {project.budget_hours}</div>
+                          )}
+                        </div>
+                        
+                        <div className="project-team">
+                          <div>Team Members: {project.team_member_count}</div>
+                          <div>Project Data: {project.project_data_count}</div>
+                        </div>
+                        
+                        <div className="project-dates">
+                          <div>Updated: {formatDate(project.updated_at)}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="project-actions">
+                      <button 
+                        className="details-button"
+                        onClick={() => fetchProjectDetails(project.code)}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="project-budget">
-                    {project.is_fixed_fee ? (
-                      <div>Fee: {formatCurrency(project.fee)}</div>
-                    ) : (
-                      <div>Budget: {formatCurrency(project.budget)}</div>
-                    )}
-                    {project.budget_hours && (
-                      <div>Hours: {project.budget_hours}</div>
-                    )}
-                  </div>
-                  
-                  <div className="project-team">
-                    <div>Team Members: {project.team_member_count}</div>
-                    <div>Project Data: {project.project_data_count}</div>
-                  </div>
-                  
-                  <div className="project-dates">
-                    <div>Updated: {formatDate(project.updated_at)}</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="project-actions">
-                <button 
-                  className="details-button"
-                  onClick={() => fetchProjectDetails(project.code)}
-                >
-                  View Details
-                </button>
+                ))}
               </div>
             </div>
           ))}

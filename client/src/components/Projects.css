@@ -87,23 +87,64 @@
   border-radius: 4px;
 }
 
+.projects-by-client {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.client-group {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.client-header {
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.client-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.project-count-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 1.5rem;
+  padding: 2rem;
 }
 
 .project-card {
-  background: white;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .project-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-color: #3b82f6;
+  background: white;
 }
 
 .project-header {
@@ -136,16 +177,7 @@
   margin-bottom: 1rem;
 }
 
-.project-client {
-  color: #374151;
-  font-size: 1rem;
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  background: #f8fafc;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-  border-left: 3px solid #3b82f6;
-}
+/* Client info removed since we're grouping by client */
 
 .project-details > div {
   margin-bottom: 0.75rem;
@@ -556,5 +588,19 @@
   
   .overview-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .client-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  
+  .client-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .projects-grid {
+    padding: 1rem;
   }
 }
