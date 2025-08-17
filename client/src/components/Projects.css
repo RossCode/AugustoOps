@@ -57,8 +57,9 @@
 
 .filter-controls {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .toggle-control {
@@ -74,6 +75,34 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.project-code-filter {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  min-width: 200px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.project-code-filter:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .projects-summary {
@@ -382,7 +411,7 @@
   font-size: 0.875rem;
 }
 
-.team-members-section, .project-data-section {
+.team-members-section, .project-data-section, .fixed-cost-tasks-section {
   margin-bottom: 2rem;
 }
 
@@ -442,17 +471,20 @@
 }
 
 .add-form .form-group input,
-.add-form .form-group select {
+.add-form .form-group select,
+.add-form .form-group textarea {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 0.875rem;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 
 .add-form .form-group input:focus,
-.add-form .form-group select:focus {
+.add-form .form-group select:focus,
+.add-form .form-group textarea:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
@@ -508,17 +540,17 @@
   background: #dc2626;
 }
 
-.team-members-section h3, .project-data-section h3 {
+.team-members-section h3, .project-data-section h3, .fixed-cost-tasks-section h3 {
   color: #1f2937;
   margin-bottom: 1rem;
   font-size: 1.2rem;
 }
 
-.team-members-table, .project-data-table {
+.team-members-table, .project-data-table, .fixed-cost-tasks-table {
   overflow-x: auto;
 }
 
-.team-members-table table, .project-data-table table {
+.team-members-table table, .project-data-table table, .fixed-cost-tasks-table table {
   width: 100%;
   border-collapse: collapse;
   background: white;
@@ -527,25 +559,26 @@
   overflow: hidden;
 }
 
-.team-members-table th, .project-data-table th,
-.team-members-table td, .project-data-table td {
+.team-members-table th, .project-data-table th, .fixed-cost-tasks-table th,
+.team-members-table td, .project-data-table td, .fixed-cost-tasks-table td {
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.team-members-table th, .project-data-table th {
+.team-members-table th, .project-data-table th, .fixed-cost-tasks-table th {
   background: #f9fafb;
   font-weight: 600;
   color: #374151;
 }
 
-.team-members-table td, .project-data-table td {
+.team-members-table td, .project-data-table td, .fixed-cost-tasks-table td {
   color: #6b7280;
 }
 
 .team-members-table tr:last-child td,
-.project-data-table tr:last-child td {
+.project-data-table tr:last-child td,
+.fixed-cost-tasks-table tr:last-child td {
   border-bottom: none;
 }
 
@@ -559,6 +592,16 @@
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+  }
+  
+  .filter-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .project-code-filter {
+    min-width: 100%;
   }
   
   .projects-grid {

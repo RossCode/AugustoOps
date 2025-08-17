@@ -39,10 +39,27 @@ interface ProjectData {
   value?: string;
 }
 
+interface FixedCostTask {
+  id: number;
+  project_id: number;
+  task_id: number;
+  billable_amount: string;
+  cost_amount: string;
+  date: string;
+  description?: string;
+  task_name?: string;
+}
+
+interface HarvestTask {
+  task_id: number;
+  task_name: string;
+}
+
 interface ProjectDetails {
   project: any;
   team_members: TeamMember[];
   project_data: ProjectData[];
+  fixed_cost_tasks?: FixedCostTask[];
 }
 
 interface AvailableTeamMember {
@@ -59,13 +76,24 @@ const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
+  const [projectCodeFilter, setProjectCodeFilter] = useState('');
   const [selectedProject, setSelectedProject] = useState<ProjectDetails | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [availableTeamMembers, setAvailableTeamMembers] = useState<AvailableTeamMember[]>([]);
   const [showAddDataForm, setShowAddDataForm] = useState(false);
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [showAddTaskForm, setShowAddTaskForm] = useState(false);
   const [newProjectData, setNewProjectData] = useState({ name: '', value: '' });
   const [newTeamMember, setNewTeamMember] = useState({ augusto_team_member_id: '', cost_rate: '', sow_hours: '' });
+  const [fixedCostTasks, setFixedCostTasks] = useState<FixedCostTask[]>([]);
+  const [harvestTasks, setHarvestTasks] = useState<HarvestTask[]>([]);
+  const [newFixedCostTask, setNewFixedCostTask] = useState({ 
+    task_id: '', 
+    billable_amount: '', 
+    cost_amount: '', 
+    date: '', 
+    description: '' 
+  });
 
   useEffect(() => {
     fetchProjects();
@@ -103,6 +131,10 @@ const Projects: React.FC = () => {
       
       // Fetch available team members for assignment
       fetchAvailableTeamMembers(projectCode);
+      
+      // Fetch fixed cost tasks and harvest tasks
+      fetchFixedCostTasks(projectCode);
+      fetchHarvestTasks(projectCode);
     } catch (error) {
       console.error('Error fetching project details:', error);
       alert('Error loading project details');
@@ -122,6 +154,38 @@ const Projects: React.FC = () => {
     } catch (error) {
       console.error('Error fetching available team members:', error);
       setAvailableTeamMembers([]);
+    }
+  };
+
+  const fetchFixedCostTasks = async (projectCode: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${projectCode}/fixed-cost-tasks`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setFixedCostTasks(data);
+    } catch (error) {
+      console.error('Error fetching fixed cost tasks:', error);
+      setFixedCostTasks([]);
+    }
+  };
+
+  const fetchHarvestTasks = async (projectCode: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${projectCode}/harvest-tasks`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setHarvestTasks(data);
+    } catch (error) {
+      console.error('Error fetching harvest tasks:', error);
+      setHarvestTasks([]);
     }
   };
 
@@ -229,6 +293,61 @@ const Projects: React.FC = () => {
     }
   };
 
+  const handleAddFixedCostTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject || !newFixedCostTask.task_id || !newFixedCostTask.billable_amount || !newFixedCostTask.cost_amount || !newFixedCostTask.date) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/fixed-cost-tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: parseInt(newFixedCostTask.task_id),
+          billable_amount: parseFloat(newFixedCostTask.billable_amount),
+          cost_amount: parseFloat(newFixedCostTask.cost_amount),
+          date: newFixedCostTask.date,
+          description: newFixedCostTask.description || null
+        })
+      });
+
+      if (response.ok) {
+        setNewFixedCostTask({ task_id: '', billable_amount: '', cost_amount: '', date: '', description: '' });
+        setShowAddTaskForm(false);
+        // Refresh fixed cost tasks
+        fetchFixedCostTasks(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to add fixed cost task'}`);
+      }
+    } catch (error) {
+      console.error('Error adding fixed cost task:', error);
+      alert('Error adding fixed cost task');
+    }
+  };
+
+  const handleDeleteFixedCostTask = async (taskId: number) => {
+    if (!selectedProject || !window.confirm('Are you sure you want to delete this fixed cost task?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/fixed-cost-tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        // Refresh fixed cost tasks
+        fetchFixedCostTasks(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to delete fixed cost task'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting fixed cost task:', error);
+      alert('Error deleting fixed cost task');
+    }
+  };
+
   const formatCurrency = (amount?: number) => {
     if (!amount) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -242,8 +361,14 @@ const Projects: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Group projects by client
-  const groupedProjects = projects.reduce((groups: { [key: string]: Project[] }, project) => {
+  // Filter projects by code if filter is applied
+  const filteredProjects = projects.filter(project => {
+    if (!projectCodeFilter) return true;
+    return project.code.toLowerCase().includes(projectCodeFilter.toLowerCase());
+  });
+
+  // Group filtered projects by client
+  const groupedProjects = filteredProjects.reduce((groups: { [key: string]: Project[] }, project) => {
     const clientName = project.client_name || 'Unknown Client';
     if (!groups[clientName]) {
       groups[clientName] = [];
@@ -279,9 +404,23 @@ const Projects: React.FC = () => {
               />
               Show inactive projects
             </label>
+            <div className="filter-group">
+              <label htmlFor="project-code-filter">Filter by project code:</label>
+              <input
+                id="project-code-filter"
+                type="text"
+                placeholder="Enter project code..."
+                value={projectCodeFilter}
+                onChange={(e) => setProjectCodeFilter(e.target.value)}
+                className="project-code-filter"
+              />
+            </div>
           </div>
           <div className="projects-summary">
-            <span className="project-count">{projects.length} projects</span>
+            <span className="project-count">
+              {filteredProjects.length} of {projects.length} projects
+              {projectCodeFilter && ` (filtered by "${projectCodeFilter}")`}
+            </span>
           </div>
         </div>
 
@@ -361,6 +500,12 @@ const Projects: React.FC = () => {
         {projects.length === 0 && (
           <div className="no-data">
             No projects found.
+          </div>
+        )}
+
+        {projects.length > 0 && filteredProjects.length === 0 && (
+          <div className="no-data">
+            No projects match the current filter "{projectCodeFilter}".
           </div>
         )}
       </main>
@@ -576,6 +721,126 @@ const Projects: React.FC = () => {
                   </div>
                 ) : (
                   <p>No additional project data available.</p>
+                )}
+              </div>
+
+              <div className="fixed-cost-tasks-section">
+                <div className="section-header-with-action">
+                  <h3>Fixed Cost Tasks ({fixedCostTasks.length})</h3>
+                  <button 
+                    className="add-button"
+                    onClick={() => setShowAddTaskForm(!showAddTaskForm)}
+                  >
+                    {showAddTaskForm ? 'Cancel' : 'Add Fixed Cost Task'}
+                  </button>
+                </div>
+                
+                {showAddTaskForm && (
+                  <div className="add-form">
+                    <h4>Add Fixed Cost Task</h4>
+                    <form onSubmit={handleAddFixedCostTask}>
+                      <div className="form-group">
+                        <label>Task:</label>
+                        <select
+                          value={newFixedCostTask.task_id}
+                          onChange={(e) => setNewFixedCostTask({...newFixedCostTask, task_id: e.target.value})}
+                          required
+                        >
+                          <option value="">Select a task</option>
+                          {harvestTasks.map(task => (
+                            <option key={task.task_id} value={task.task_id}>
+                              {task.task_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Billable Amount ($):</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newFixedCostTask.billable_amount}
+                          onChange={(e) => setNewFixedCostTask({...newFixedCostTask, billable_amount: e.target.value})}
+                          required
+                          placeholder="e.g., 1500.00"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Cost Amount ($):</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newFixedCostTask.cost_amount}
+                          onChange={(e) => setNewFixedCostTask({...newFixedCostTask, cost_amount: e.target.value})}
+                          required
+                          placeholder="e.g., 1000.00"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Date:</label>
+                        <input
+                          type="date"
+                          value={newFixedCostTask.date}
+                          onChange={(e) => setNewFixedCostTask({...newFixedCostTask, date: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Description (optional):</label>
+                        <textarea
+                          value={newFixedCostTask.description}
+                          onChange={(e) => setNewFixedCostTask({...newFixedCostTask, description: e.target.value})}
+                          placeholder="Additional notes about this fixed cost task"
+                          rows={3}
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button type="submit">Add Fixed Cost Task</button>
+                        <button type="button" onClick={() => setShowAddTaskForm(false)}>Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+                
+                {fixedCostTasks.length > 0 ? (
+                  <div className="fixed-cost-tasks-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Task</th>
+                          <th>Billable Amount</th>
+                          <th>Cost Amount</th>
+                          <th>Date</th>
+                          <th>Description</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fixedCostTasks.map((task) => (
+                          <tr key={task.id}>
+                            <td>{task.task_name || `Task ${task.task_id}`}</td>
+                            <td>{formatCurrency(parseFloat(task.billable_amount))}</td>
+                            <td>{formatCurrency(parseFloat(task.cost_amount))}</td>
+                            <td>{formatDate(task.date)}</td>
+                            <td>{task.description || 'N/A'}</td>
+                            <td>
+                              <button 
+                                className="delete-button-small"
+                                onClick={() => handleDeleteFixedCostTask(task.id)}
+                                title="Delete fixed cost task"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p>No fixed cost tasks available.</p>
                 )}
               </div>
             </div>

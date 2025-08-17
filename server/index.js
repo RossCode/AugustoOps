@@ -82,6 +82,7 @@ app.get('/api/test', async (req, res) => {
 });
 
 
+
 // Projects dashboard endpoints
 app.get('/api/projects', async (req, res) => {
   const showInactive = req.query.show_inactive === 'true';
@@ -739,6 +740,215 @@ app.put('/api/team-members/:name/internal-rate', async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: 'Failed to update internal rate' });
+  }
+});
+
+// Fixed Cost Tasks endpoints
+app.get('/api/projects/:code/fixed-cost-tasks', async (req, res) => {
+  const projectCode = req.params.code;
+  
+  try {
+    // Get project ID from code
+    const [projectInfo] = await db.execute(`
+      SELECT id FROM harvest_projects 
+      WHERE code = ? 
+        AND code LIKE '300%'
+        AND (client_name != 'Augusto Digital' OR client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const projectId = projectInfo[0].id;
+    
+    // Get fixed cost tasks with task information
+    const [tasks] = await db.execute(`
+      SELECT 
+        fct.*,
+        hta.task_name
+      FROM augusto_fixed_cost_tasks fct
+      LEFT JOIN harvest_task_assignments hta ON fct.task_id = hta.task_id AND fct.project_id = hta.project_id
+      WHERE fct.project_id = ?
+      ORDER BY fct.date DESC, fct.id DESC
+    `, [projectId]);
+    
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching fixed cost tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch fixed cost tasks' });
+  }
+});
+
+app.get('/api/projects/:code/harvest-tasks', async (req, res) => {
+  const projectCode = req.params.code;
+  
+  try {
+    // Get project ID from code
+    const [projectInfo] = await db.execute(`
+      SELECT id FROM harvest_projects 
+      WHERE code = ? 
+        AND code LIKE '300%'
+        AND (client_name != 'Augusto Digital' OR client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const projectId = projectInfo[0].id;
+    
+    // Get available tasks for this project
+    const [tasks] = await db.execute(`
+      SELECT DISTINCT task_id, task_name
+      FROM harvest_task_assignments 
+      WHERE project_id = ?
+      ORDER BY task_name
+    `, [projectId]);
+    
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error fetching harvest tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch harvest tasks' });
+  }
+});
+
+app.post('/api/projects/:code/fixed-cost-tasks', async (req, res) => {
+  const projectCode = req.params.code;
+  const { task_id, billable_amount, cost_amount, date, description } = req.body;
+  
+  if (!task_id || billable_amount === undefined || cost_amount === undefined || !date) {
+    return res.status(400).json({ error: 'Task ID, billable amount, cost amount, and date are required' });
+  }
+  
+  if (billable_amount < 0 || cost_amount < 0) {
+    return res.status(400).json({ error: 'Billable amount and cost amount must be greater than or equal to 0' });
+  }
+  
+  try {
+    // Get project ID from code
+    const [projectInfo] = await db.execute(`
+      SELECT id FROM harvest_projects 
+      WHERE code = ? 
+        AND code LIKE '300%'
+        AND (client_name != 'Augusto Digital' OR client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const projectId = projectInfo[0].id;
+    
+    // Verify task is assigned to this project
+    const [taskCheck] = await db.execute(`
+      SELECT COUNT(*) as count FROM harvest_task_assignments 
+      WHERE project_id = ? AND task_id = ?
+    `, [projectId, task_id]);
+    
+    if (taskCheck[0].count === 0) {
+      return res.status(400).json({ error: 'Task is not assigned to this project' });
+    }
+    
+    const [result] = await db.execute(
+      'INSERT INTO augusto_fixed_cost_tasks (project_id, task_id, billable_amount, cost_amount, date, description) VALUES (?, ?, ?, ?, ?, ?)',
+      [projectId, task_id, billable_amount, cost_amount, date, description || null]
+    );
+    
+    res.status(201).json({ 
+      message: 'Fixed cost task created successfully',
+      task_id: result.insertId
+    });
+  } catch (error) {
+    console.error('Error creating fixed cost task:', error);
+    res.status(500).json({ error: 'Failed to create fixed cost task' });
+  }
+});
+
+app.put('/api/projects/:code/fixed-cost-tasks/:taskId', async (req, res) => {
+  const { code: projectCode, taskId } = req.params;
+  const { task_id, billable_amount, cost_amount, date, description } = req.body;
+  
+  if (!task_id || billable_amount === undefined || cost_amount === undefined || !date) {
+    return res.status(400).json({ error: 'Task ID, billable amount, cost amount, and date are required' });
+  }
+  
+  if (billable_amount < 0 || cost_amount < 0) {
+    return res.status(400).json({ error: 'Billable amount and cost amount must be greater than or equal to 0' });
+  }
+  
+  try {
+    // Get project ID from code
+    const [projectInfo] = await db.execute(`
+      SELECT id FROM harvest_projects 
+      WHERE code = ? 
+        AND code LIKE '300%'
+        AND (client_name != 'Augusto Digital' OR client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const projectId = projectInfo[0].id;
+    
+    // Verify task is assigned to this project
+    const [taskCheck] = await db.execute(`
+      SELECT COUNT(*) as count FROM harvest_task_assignments 
+      WHERE project_id = ? AND task_id = ?
+    `, [projectId, task_id]);
+    
+    if (taskCheck[0].count === 0) {
+      return res.status(400).json({ error: 'Task is not assigned to this project' });
+    }
+    
+    const [result] = await db.execute(
+      'UPDATE augusto_fixed_cost_tasks SET task_id = ?, billable_amount = ?, cost_amount = ?, date = ?, description = ? WHERE id = ? AND project_id = ?',
+      [task_id, billable_amount, cost_amount, date, description || null, taskId, projectId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Fixed cost task not found' });
+    } else {
+      res.json({ message: 'Fixed cost task updated successfully' });
+    }
+  } catch (error) {
+    console.error('Error updating fixed cost task:', error);
+    res.status(500).json({ error: 'Failed to update fixed cost task' });
+  }
+});
+
+app.delete('/api/projects/:code/fixed-cost-tasks/:taskId', async (req, res) => {
+  const { code: projectCode, taskId } = req.params;
+  
+  try {
+    // Get project ID from code
+    const [projectInfo] = await db.execute(`
+      SELECT id FROM harvest_projects 
+      WHERE code = ? 
+        AND code LIKE '300%'
+        AND (client_name != 'Augusto Digital' OR client_name IS NULL)
+    `, [projectCode]);
+    
+    if (projectInfo.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const projectId = projectInfo[0].id;
+    
+    const [result] = await db.execute(
+      'DELETE FROM augusto_fixed_cost_tasks WHERE id = ? AND project_id = ?',
+      [taskId, projectId]
+    );
+    
+    if (result.affectedRows === 0) {
+      res.status(404).json({ error: 'Fixed cost task not found' });
+    } else {
+      res.json({ message: 'Fixed cost task deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting fixed cost task:', error);
+    res.status(500).json({ error: 'Failed to delete fixed cost task' });
   }
 });
 
