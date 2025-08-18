@@ -90,7 +90,7 @@
   margin: 0;
 }
 
-.project-code-filter {
+.project-search-filter {
   padding: 0.5rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
@@ -99,7 +99,7 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.project-code-filter:focus {
+.project-search-filter:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
@@ -600,7 +600,7 @@
     gap: 1rem;
   }
   
-  .project-code-filter {
+  .project-search-filter {
     min-width: 100%;
   }
   

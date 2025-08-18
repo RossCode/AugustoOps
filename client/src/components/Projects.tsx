@@ -76,7 +76,7 @@ const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
-  const [projectCodeFilter, setProjectCodeFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   const [selectedProject, setSelectedProject] = useState<ProjectDetails | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [availableTeamMembers, setAvailableTeamMembers] = useState<AvailableTeamMember[]>([]);
@@ -361,10 +361,15 @@ const Projects: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Filter projects by code if filter is applied
+  // Filter projects by code, name, or client name if filter is applied
   const filteredProjects = projects.filter(project => {
-    if (!projectCodeFilter) return true;
-    return project.code.toLowerCase().includes(projectCodeFilter.toLowerCase());
+    if (!searchFilter) return true;
+    const searchTerm = searchFilter.toLowerCase();
+    return (
+      project.code.toLowerCase().includes(searchTerm) ||
+      project.name.toLowerCase().includes(searchTerm) ||
+      (project.client_name && project.client_name.toLowerCase().includes(searchTerm))
+    );
   });
 
   // Group filtered projects by client
@@ -405,21 +410,21 @@ const Projects: React.FC = () => {
               Show inactive projects
             </label>
             <div className="filter-group">
-              <label htmlFor="project-code-filter">Filter by project code:</label>
+              <label htmlFor="project-search-filter">Search projects:</label>
               <input
-                id="project-code-filter"
+                id="project-search-filter"
                 type="text"
-                placeholder="Enter project code..."
-                value={projectCodeFilter}
-                onChange={(e) => setProjectCodeFilter(e.target.value)}
-                className="project-code-filter"
+                placeholder="Search by project name, code, or client..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="project-search-filter"
               />
             </div>
           </div>
           <div className="projects-summary">
             <span className="project-count">
               {filteredProjects.length} of {projects.length} projects
-              {projectCodeFilter && ` (filtered by "${projectCodeFilter}")`}
+              {searchFilter && ` (filtered by "${searchFilter}")`}
             </span>
           </div>
         </div>
@@ -505,7 +510,7 @@ const Projects: React.FC = () => {
 
         {projects.length > 0 && filteredProjects.length === 0 && (
           <div className="no-data">
-            No projects match the current filter "{projectCodeFilter}".
+            No projects match the current search "{searchFilter}".
           </div>
         )}
       </main>
