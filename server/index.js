@@ -45,17 +45,29 @@ const createSSHTunnel = () => {
 
 const initializeDatabase = async () => {
   try {
-    // SSH tunnel should already be running manually
-    console.log('Using existing SSH tunnel on port', process.env.DB_PORT || 3307);
-
-    console.log('Connecting to database...');
-    db = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'augusto_ops',
-      port: process.env.DB_PORT || 3306
-    });
+    const useSSH = process.env.USE_SSH_TUNNEL === 'true';
+    
+    if (useSSH) {
+      console.log('Using SSH tunnel connection on port', process.env.DB_PORT || 3307);
+      
+      db = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'augusto_ops',
+        port: process.env.DB_PORT || 3307
+      });
+    } else {
+      console.log('Using direct database connection');
+      
+      db = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'augusto_ops',
+        port: 3306
+      });
+    }
     
     console.log('Database connected to existing tables');
     

@@ -15,6 +15,7 @@ build/
 *.pem
 *.key
 digitalocean_augusto.pub
+digitalocean_augusto
 AugustoReportingKey*
 AugustoreportingKey*
 
