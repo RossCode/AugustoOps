@@ -94,6 +94,8 @@ const Projects: React.FC = () => {
     date: '', 
     description: '' 
   });
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -348,6 +350,47 @@ const Projects: React.FC = () => {
     }
   };
 
+  const handleSyncProjects = async () => {
+    setSyncLoading(true);
+    setSyncMessage(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/sync/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSyncMessage({
+          type: 'success',
+          text: 'Projects sync triggered successfully. Refresh the page in a few minutes to see updated data.'
+        });
+        // Auto-refresh projects after a successful sync
+        setTimeout(() => {
+          fetchProjects();
+        }, 2000);
+      } else {
+        setSyncMessage({
+          type: 'error',
+          text: data.error || 'Failed to trigger projects sync'
+        });
+      }
+    } catch (error) {
+      setSyncMessage({
+        type: 'error',
+        text: 'Network error: Could not trigger projects sync. Please check your connection and try again.'
+      });
+    } finally {
+      setSyncLoading(false);
+      // Clear message after 5 seconds
+      setTimeout(() => setSyncMessage(null), 5000);
+    }
+  };
+
   const formatCurrency = (amount?: number) => {
     if (!amount) return 'N/A';
     return new Intl.NumberFormat('en-US', {
@@ -394,8 +437,41 @@ const Projects: React.FC = () => {
       </nav>
 
       <header className="projects-header">
-        <h1>Projects Dashboard</h1>
-        <p>Manage project data and team assignments for client projects (300XXX codes only) • Organized by client</p>
+        <div className="header-content">
+          <div className="header-text">
+            <h1>Projects Dashboard</h1>
+            <p>Manage project data and team assignments for client projects (300XXX codes only) • Organized by client</p>
+          </div>
+          <div className="header-actions">
+            <button
+              className={`sync-projects-button ${syncLoading ? 'loading' : ''}`}
+              onClick={handleSyncProjects}
+              disabled={syncLoading}
+              title="Trigger n8n projects sync"
+            >
+              {syncLoading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <span className="sync-icon">🔄</span>
+                  Sync Projects
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        
+        {syncMessage && (
+          <div className={`sync-message ${syncMessage.type}`}>
+            <span className="message-icon">
+              {syncMessage.type === 'success' ? '✅' : '❌'}
+            </span>
+            {syncMessage.text}
+          </div>
+        )}
       </header>
 
       <main className="projects-content">

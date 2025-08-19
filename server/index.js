@@ -969,6 +969,181 @@ app.post('/api/webhooks/n8n', async (req, res) => {
   res.json({ message: 'Webhook received successfully' });
 });
 
+// n8n sync endpoints
+app.post('/api/sync/projects', async (req, res) => {
+  try {
+    console.log('Triggering n8n projects sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/harvest-projects');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('Projects sync triggered successfully');
+    
+    res.json({ 
+      message: 'Projects sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering projects sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger projects sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/api/sync/clients', async (req, res) => {
+  try {
+    console.log('Triggering n8n clients sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/harvest-clients');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('Clients sync triggered successfully');
+    
+    res.json({ 
+      message: 'Clients sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering clients sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger clients sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/api/sync/time', async (req, res) => {
+  try {
+    console.log('Triggering n8n harvest time sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/harvest-time');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('Harvest time sync triggered successfully');
+    
+    res.json({ 
+      message: 'Harvest time sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering harvest time sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger harvest time sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/api/sync/forecast', async (req, res) => {
+  try {
+    console.log('Triggering n8n forecast data sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/forecast-data');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('Forecast data sync triggered successfully');
+    
+    res.json({ 
+      message: 'Forecast data sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering forecast data sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger forecast data sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/api/sync/quickbooks-accounts', async (req, res) => {
+  try {
+    console.log('Triggering n8n QuickBooks accounts sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/quickbooks-accounts');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('QuickBooks accounts sync triggered successfully');
+    
+    res.json({ 
+      message: 'QuickBooks accounts sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering QuickBooks accounts sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger QuickBooks accounts sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/api/sync/quickbooks-invoices', async (req, res) => {
+  try {
+    console.log('Triggering n8n QuickBooks invoices sync...');
+    
+    const response = await fetch('https://automate.augusto.digital/webhook/quickbooks-invoices');
+    
+    if (!response.ok) {
+      throw new Error(`n8n webhook returned status: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log('QuickBooks invoices sync triggered successfully');
+    
+    res.json({ 
+      message: 'QuickBooks invoices sync triggered successfully',
+      status: 'success',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error triggering QuickBooks invoices sync:', error);
+    res.status(500).json({ 
+      error: 'Failed to trigger QuickBooks invoices sync',
+      details: error.message,
+      status: 'error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');

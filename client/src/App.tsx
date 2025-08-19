@@ -5,6 +5,7 @@ import TeamMembers from './components/TeamMembers';
 import ServiceLines from './components/ServiceLines';
 import Roles from './components/Roles';
 import Projects from './components/Projects';
+import Admin from './components/Admin';
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Route path="/service-lines" element={<ServiceLines />} />
           <Route path="/roles" element={<Roles />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </div>
     </Router>
