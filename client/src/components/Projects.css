@@ -131,6 +131,134 @@
   font-size: 1.1em;
 }
 
+/* Edit mode styles */
+.editing-row {
+  background-color: #f8f9fa;
+  border-left: 4px solid #007bff;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: inherit;
+  background-color: white;
+  transition: border-color 0.2s ease;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.edit-textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.edit-button-small,
+.save-button-small,
+.cancel-button-small {
+  padding: 4px 8px;
+  font-size: 0.8em;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.edit-button-small {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.edit-button-small:hover {
+  background-color: #138496;
+  transform: translateY(-1px);
+}
+
+.save-button-small {
+  background-color: #28a745;
+  color: white;
+}
+
+.save-button-small:hover {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.cancel-button-small {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-button-small:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.delete-button-small {
+  padding: 4px 8px;
+  font-size: 0.8em;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.delete-button-small:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+/* Table cell adjustments for edit mode */
+.team-members-table td,
+.project-data-table td,
+.fixed-cost-tasks-table td {
+  vertical-align: top;
+  padding: 8px;
+}
+
+.editing-row td {
+  padding: 12px 8px;
+}
+
+/* Responsive adjustments for edit mode */
+@media (max-width: 768px) {
+  .edit-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .edit-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .edit-button-small,
+  .save-button-small,
+  .cancel-button-small,
+  .delete-button-small {
+    padding: 6px 10px;
+    font-size: 0.85em;
+  }
+}
+
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;

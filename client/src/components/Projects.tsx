@@ -96,6 +96,22 @@ const Projects: React.FC = () => {
   });
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Edit state management
+  const [editingTeamMember, setEditingTeamMember] = useState<number | null>(null);
+  const [editingProjectData, setEditingProjectData] = useState<number | null>(null);
+  const [editingFixedTask, setEditingFixedTask] = useState<number | null>(null);
+  
+  // Edit form states
+  const [editTeamMemberForm, setEditTeamMemberForm] = useState({ cost_rate: '', sow_hours: '' });
+  const [editProjectDataForm, setEditProjectDataForm] = useState({ name: '', value: '' });
+  const [editFixedTaskForm, setEditFixedTaskForm] = useState({ 
+    task_id: '', 
+    billable_amount: '', 
+    cost_amount: '', 
+    date: '', 
+    description: '' 
+  });
 
   useEffect(() => {
     fetchProjects();
@@ -389,6 +405,138 @@ const Projects: React.FC = () => {
       // Clear message after 5 seconds
       setTimeout(() => setSyncMessage(null), 5000);
     }
+  };
+
+  // Team Member edit handlers
+  const handleEditTeamMember = (memberId: number, member: TeamMember) => {
+    setEditingTeamMember(memberId);
+    setEditTeamMemberForm({
+      cost_rate: member.cost_rate,
+      sow_hours: member.sow_hours?.toString() || ''
+    });
+  };
+
+  const handleSaveTeamMember = async (memberId: number) => {
+    if (!selectedProject) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/team-members/${memberId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cost_rate: parseFloat(editTeamMemberForm.cost_rate),
+          sow_hours: editTeamMemberForm.sow_hours ? parseInt(editTeamMemberForm.sow_hours) : null
+        })
+      });
+
+      if (response.ok) {
+        setEditingTeamMember(null);
+        // Refresh project details
+        fetchProjectDetails(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update team member'}`);
+      }
+    } catch (error) {
+      console.error('Error updating team member:', error);
+      alert('Error updating team member');
+    }
+  };
+
+  const handleCancelEditTeamMember = () => {
+    setEditingTeamMember(null);
+    setEditTeamMemberForm({ cost_rate: '', sow_hours: '' });
+  };
+
+  // Project Data edit handlers
+  const handleEditProjectData = (dataId: number, data: ProjectData) => {
+    setEditingProjectData(dataId);
+    setEditProjectDataForm({
+      name: data.name,
+      value: data.value || ''
+    });
+  };
+
+  const handleSaveProjectData = async (dataId: number) => {
+    if (!selectedProject) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/data/${dataId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editProjectDataForm)
+      });
+
+      if (response.ok) {
+        setEditingProjectData(null);
+        // Refresh project details
+        fetchProjectDetails(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update project data'}`);
+      }
+    } catch (error) {
+      console.error('Error updating project data:', error);
+      alert('Error updating project data');
+    }
+  };
+
+  const handleCancelEditProjectData = () => {
+    setEditingProjectData(null);
+    setEditProjectDataForm({ name: '', value: '' });
+  };
+
+  // Fixed Cost Task edit handlers
+  const handleEditFixedTask = (taskId: number, task: FixedCostTask) => {
+    setEditingFixedTask(taskId);
+    setEditFixedTaskForm({
+      task_id: task.task_id.toString(),
+      billable_amount: task.billable_amount,
+      cost_amount: task.cost_amount,
+      date: task.date,
+      description: task.description || ''
+    });
+  };
+
+  const handleSaveFixedTask = async (taskId: number) => {
+    if (!selectedProject) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/fixed-cost-tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: parseInt(editFixedTaskForm.task_id),
+          billable_amount: parseFloat(editFixedTaskForm.billable_amount),
+          cost_amount: parseFloat(editFixedTaskForm.cost_amount),
+          date: editFixedTaskForm.date,
+          description: editFixedTaskForm.description || null
+        })
+      });
+
+      if (response.ok) {
+        setEditingFixedTask(null);
+        // Refresh fixed cost tasks
+        fetchFixedCostTasks(selectedProject.project.code);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || 'Failed to update fixed cost task'}`);
+      }
+    } catch (error) {
+      console.error('Error updating fixed cost task:', error);
+      alert('Error updating fixed cost task');
+    }
+  };
+
+  const handleCancelEditFixedTask = () => {
+    setEditingFixedTask(null);
+    setEditFixedTaskForm({ 
+      task_id: '', 
+      billable_amount: '', 
+      cost_amount: '', 
+      date: '', 
+      description: '' 
+    });
   };
 
   const formatCurrency = (amount?: number) => {
@@ -705,19 +853,71 @@ const Projects: React.FC = () => {
                       </thead>
                       <tbody>
                         {selectedProject.team_members.map((member) => (
-                          <tr key={member.augusto_team_member_id}>
+                          <tr key={member.augusto_team_member_id} className={editingTeamMember === member.augusto_team_member_id ? 'editing-row' : ''}>
                             <td>{member.full_name}</td>
                             <td>{member.role}</td>
-                            <td>${member.cost_rate}</td>
-                            <td>{member.sow_hours || 'N/A'}</td>
                             <td>
-                              <button 
-                                className="delete-button-small"
-                                onClick={() => handleRemoveTeamMember(member.augusto_team_member_id)}
-                                title="Remove from project"
-                              >
-                                Remove
-                              </button>
+                              {editingTeamMember === member.augusto_team_member_id ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  className="edit-input"
+                                  value={editTeamMemberForm.cost_rate}
+                                  onChange={(e) => setEditTeamMemberForm({...editTeamMemberForm, cost_rate: e.target.value})}
+                                />
+                              ) : (
+                                `$${member.cost_rate}`
+                              )}
+                            </td>
+                            <td>
+                              {editingTeamMember === member.augusto_team_member_id ? (
+                                <input
+                                  type="number"
+                                  className="edit-input"
+                                  value={editTeamMemberForm.sow_hours}
+                                  onChange={(e) => setEditTeamMemberForm({...editTeamMemberForm, sow_hours: e.target.value})}
+                                  placeholder="N/A"
+                                />
+                              ) : (
+                                member.sow_hours || 'N/A'
+                              )}
+                            </td>
+                            <td>
+                              {editingTeamMember === member.augusto_team_member_id ? (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="save-button-small"
+                                    onClick={() => handleSaveTeamMember(member.augusto_team_member_id)}
+                                    title="Save changes"
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    className="cancel-button-small"
+                                    onClick={handleCancelEditTeamMember}
+                                    title="Cancel editing"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="edit-button-small"
+                                    onClick={() => handleEditTeamMember(member.augusto_team_member_id, member)}
+                                    title="Edit team member"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    className="delete-button-small"
+                                    onClick={() => handleRemoveTeamMember(member.augusto_team_member_id)}
+                                    title="Remove from project"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -783,17 +983,68 @@ const Projects: React.FC = () => {
                       </thead>
                       <tbody>
                         {selectedProject.project_data.map((data) => (
-                          <tr key={data.id}>
-                            <td>{data.name}</td>
-                            <td>{data.value || 'N/A'}</td>
+                          <tr key={data.id} className={editingProjectData === data.id ? 'editing-row' : ''}>
                             <td>
-                              <button 
-                                className="delete-button-small"
-                                onClick={() => handleDeleteProjectData(data.id)}
-                                title="Delete project data"
-                              >
-                                Delete
-                              </button>
+                              {editingProjectData === data.id ? (
+                                <input
+                                  type="text"
+                                  className="edit-input"
+                                  value={editProjectDataForm.name}
+                                  onChange={(e) => setEditProjectDataForm({...editProjectDataForm, name: e.target.value})}
+                                />
+                              ) : (
+                                data.name
+                              )}
+                            </td>
+                            <td>
+                              {editingProjectData === data.id ? (
+                                <input
+                                  type="text"
+                                  className="edit-input"
+                                  value={editProjectDataForm.value}
+                                  onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
+                                  placeholder="N/A"
+                                />
+                              ) : (
+                                data.value || 'N/A'
+                              )}
+                            </td>
+                            <td>
+                              {editingProjectData === data.id ? (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="save-button-small"
+                                    onClick={() => handleSaveProjectData(data.id)}
+                                    title="Save changes"
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    className="cancel-button-small"
+                                    onClick={handleCancelEditProjectData}
+                                    title="Cancel editing"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="edit-button-small"
+                                    onClick={() => handleEditProjectData(data.id, data)}
+                                    title="Edit project data"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    className="delete-button-small"
+                                    onClick={() => handleDeleteProjectData(data.id)}
+                                    title="Delete project data"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -900,20 +1151,114 @@ const Projects: React.FC = () => {
                       </thead>
                       <tbody>
                         {fixedCostTasks.map((task) => (
-                          <tr key={task.id}>
-                            <td>{task.task_name || `Task ${task.task_id}`}</td>
-                            <td>{formatCurrency(parseFloat(task.billable_amount))}</td>
-                            <td>{formatCurrency(parseFloat(task.cost_amount))}</td>
-                            <td>{formatDate(task.date)}</td>
-                            <td>{task.description || 'N/A'}</td>
+                          <tr key={task.id} className={editingFixedTask === task.id ? 'editing-row' : ''}>
                             <td>
-                              <button 
-                                className="delete-button-small"
-                                onClick={() => handleDeleteFixedCostTask(task.id)}
-                                title="Delete fixed cost task"
-                              >
-                                Delete
-                              </button>
+                              {editingFixedTask === task.id ? (
+                                <select
+                                  className="edit-input"
+                                  value={editFixedTaskForm.task_id}
+                                  onChange={(e) => setEditFixedTaskForm({...editFixedTaskForm, task_id: e.target.value})}
+                                >
+                                  <option value="">Select a task</option>
+                                  {harvestTasks.map(harvestTask => (
+                                    <option key={harvestTask.task_id} value={harvestTask.task_id}>
+                                      {harvestTask.task_name}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                task.task_name || `Task ${task.task_id}`
+                              )}
+                            </td>
+                            <td>
+                              {editingFixedTask === task.id ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="edit-input"
+                                  value={editFixedTaskForm.billable_amount}
+                                  onChange={(e) => setEditFixedTaskForm({...editFixedTaskForm, billable_amount: e.target.value})}
+                                />
+                              ) : (
+                                formatCurrency(parseFloat(task.billable_amount))
+                              )}
+                            </td>
+                            <td>
+                              {editingFixedTask === task.id ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  className="edit-input"
+                                  value={editFixedTaskForm.cost_amount}
+                                  onChange={(e) => setEditFixedTaskForm({...editFixedTaskForm, cost_amount: e.target.value})}
+                                />
+                              ) : (
+                                formatCurrency(parseFloat(task.cost_amount))
+                              )}
+                            </td>
+                            <td>
+                              {editingFixedTask === task.id ? (
+                                <input
+                                  type="date"
+                                  className="edit-input"
+                                  value={editFixedTaskForm.date}
+                                  onChange={(e) => setEditFixedTaskForm({...editFixedTaskForm, date: e.target.value})}
+                                />
+                              ) : (
+                                formatDate(task.date)
+                              )}
+                            </td>
+                            <td>
+                              {editingFixedTask === task.id ? (
+                                <textarea
+                                  className="edit-input edit-textarea"
+                                  value={editFixedTaskForm.description}
+                                  onChange={(e) => setEditFixedTaskForm({...editFixedTaskForm, description: e.target.value})}
+                                  placeholder="N/A"
+                                  rows={2}
+                                />
+                              ) : (
+                                task.description || 'N/A'
+                              )}
+                            </td>
+                            <td>
+                              {editingFixedTask === task.id ? (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="save-button-small"
+                                    onClick={() => handleSaveFixedTask(task.id)}
+                                    title="Save changes"
+                                  >
+                                    Save
+                                  </button>
+                                  <button 
+                                    className="cancel-button-small"
+                                    onClick={handleCancelEditFixedTask}
+                                    title="Cancel editing"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="edit-actions">
+                                  <button 
+                                    className="edit-button-small"
+                                    onClick={() => handleEditFixedTask(task.id, task)}
+                                    title="Edit fixed cost task"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    className="delete-button-small"
+                                    onClick={() => handleDeleteFixedCostTask(task.id)}
+                                    title="Delete fixed cost task"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
