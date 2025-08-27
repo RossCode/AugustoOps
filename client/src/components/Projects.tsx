@@ -70,6 +70,15 @@ interface AvailableTeamMember {
   service_line_id: string;
 }
 
+interface AllTeamMember {
+  id: number;
+  full_name: string;
+  role: string;
+  default_cost_rate: string;
+  service_line_id: string;
+  is_active: number;
+}
+
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 const Projects: React.FC = () => {
@@ -84,6 +93,8 @@ const Projects: React.FC = () => {
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
   const [newProjectData, setNewProjectData] = useState({ name: '', value: '' });
+  const [selectedFieldType, setSelectedFieldType] = useState('');
+  const [allTeamMembers, setAllTeamMembers] = useState<AllTeamMember[]>([]);
   const [newTeamMember, setNewTeamMember] = useState({ augusto_team_member_id: '', cost_rate: '', sow_hours: '' });
   const [fixedCostTasks, setFixedCostTasks] = useState<FixedCostTask[]>([]);
   const [harvestTasks, setHarvestTasks] = useState<HarvestTask[]>([]);
@@ -97,6 +108,17 @@ const Projects: React.FC = () => {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
+  // Predefined field options
+  const FIELD_TYPES = {
+    REVENUE_TYPE: 'Revenue Type',
+    ACCOUNT_OWNER: 'Account Owner', 
+    BILLING_TYPE: 'Billing Type',
+    CUSTOM: 'Custom'
+  };
+  
+  const REVENUE_TYPE_OPTIONS = ['New', 'Extension', 'Recurring'];
+  const BILLING_TYPE_OPTIONS = ['Up Front', 'Bi-Weekly Journal Entry', 'Bi-Weekly Invoice', 'Monthly'];
+  
   // Edit state management
   const [editingTeamMember, setEditingTeamMember] = useState<number | null>(null);
   const [editingProjectData, setEditingProjectData] = useState<number | null>(null);
@@ -105,6 +127,7 @@ const Projects: React.FC = () => {
   // Edit form states
   const [editTeamMemberForm, setEditTeamMemberForm] = useState({ cost_rate: '', sow_hours: '' });
   const [editProjectDataForm, setEditProjectDataForm] = useState({ name: '', value: '' });
+  const [editFieldType, setEditFieldType] = useState('');
   const [editFixedTaskForm, setEditFixedTaskForm] = useState({ 
     task_id: '', 
     billable_amount: '', 
@@ -116,6 +139,11 @@ const Projects: React.FC = () => {
   useEffect(() => {
     fetchProjects();
   }, [showInactive]);
+
+  useEffect(() => {
+    // Fetch all team members when component mounts for Account Owner dropdown
+    fetchAllTeamMembers();
+  }, []);
 
   const fetchProjects = async () => {
     try {
@@ -207,9 +235,35 @@ const Projects: React.FC = () => {
     }
   };
 
+  const fetchAllTeamMembers = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/team-members`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      // Filter to only active team members for Account Owner dropdown
+      setAllTeamMembers(data.filter((member: AllTeamMember) => member.is_active));
+    } catch (error) {
+      console.error('Error fetching all team members:', error);
+      setAllTeamMembers([]);
+    }
+  };
+
+  const handleFieldTypeChange = (fieldType: string) => {
+    setSelectedFieldType(fieldType);
+    if (fieldType !== FIELD_TYPES.CUSTOM) {
+      setNewProjectData({ name: fieldType, value: '' });
+    } else {
+      setNewProjectData({ name: '', value: '' });
+    }
+  };
+
   const handleAddProjectData = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProject || !newProjectData.name) return;
+    if (!selectedProject || !newProjectData.name || !newProjectData.value) return;
 
     try {
       const response = await fetch(`${API_BASE}/api/projects/${selectedProject.project.code}/data`, {
@@ -220,6 +274,7 @@ const Projects: React.FC = () => {
 
       if (response.ok) {
         setNewProjectData({ name: '', value: '' });
+        setSelectedFieldType('');
         setShowAddDataForm(false);
         // Refresh project details
         fetchProjectDetails(selectedProject.project.code);
@@ -455,6 +510,24 @@ const Projects: React.FC = () => {
       name: data.name,
       value: data.value || ''
     });
+    
+    // Determine field type based on name
+    if (data.name === FIELD_TYPES.REVENUE_TYPE) {
+      setEditFieldType(FIELD_TYPES.REVENUE_TYPE);
+    } else if (data.name === FIELD_TYPES.ACCOUNT_OWNER) {
+      setEditFieldType(FIELD_TYPES.ACCOUNT_OWNER);
+    } else if (data.name === FIELD_TYPES.BILLING_TYPE) {
+      setEditFieldType(FIELD_TYPES.BILLING_TYPE);
+    } else {
+      setEditFieldType(FIELD_TYPES.CUSTOM);
+    }
+  };
+
+  const handleEditFieldTypeChange = (fieldType: string) => {
+    setEditFieldType(fieldType);
+    if (fieldType !== FIELD_TYPES.CUSTOM) {
+      setEditProjectDataForm({ name: fieldType, value: editProjectDataForm.value });
+    }
   };
 
   const handleSaveProjectData = async (dataId: number) => {
@@ -484,6 +557,7 @@ const Projects: React.FC = () => {
   const handleCancelEditProjectData = () => {
     setEditingProjectData(null);
     setEditProjectDataForm({ name: '', value: '' });
+    setEditFieldType('');
   };
 
   // Fixed Cost Task edit handlers
@@ -945,27 +1019,92 @@ const Projects: React.FC = () => {
                     <h4>Add Project Data</h4>
                     <form onSubmit={handleAddProjectData}>
                       <div className="form-group">
-                        <label>Name:</label>
-                        <input
-                          type="text"
-                          value={newProjectData.name}
-                          onChange={(e) => setNewProjectData({...newProjectData, name: e.target.value})}
+                        <label>Field Type:</label>
+                        <select
+                          value={selectedFieldType}
+                          onChange={(e) => handleFieldTypeChange(e.target.value)}
                           required
-                          placeholder="e.g., PO Number, Manager, Budget Note"
-                        />
+                        >
+                          <option value="">Select field type</option>
+                          <option value={FIELD_TYPES.REVENUE_TYPE}>{FIELD_TYPES.REVENUE_TYPE}</option>
+                          <option value={FIELD_TYPES.ACCOUNT_OWNER}>{FIELD_TYPES.ACCOUNT_OWNER}</option>
+                          <option value={FIELD_TYPES.BILLING_TYPE}>{FIELD_TYPES.BILLING_TYPE}</option>
+                          <option value={FIELD_TYPES.CUSTOM}>{FIELD_TYPES.CUSTOM}</option>
+                        </select>
                       </div>
+                      
+                      {selectedFieldType === FIELD_TYPES.CUSTOM && (
+                        <div className="form-group">
+                          <label>Custom Field Name:</label>
+                          <input
+                            type="text"
+                            value={newProjectData.name}
+                            onChange={(e) => setNewProjectData({...newProjectData, name: e.target.value})}
+                            required
+                            placeholder="e.g., PO Number, Manager, Budget Note"
+                          />
+                        </div>
+                      )}
+                      
                       <div className="form-group">
                         <label>Value:</label>
-                        <input
-                          type="text"
-                          value={newProjectData.value}
-                          onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
-                          placeholder="e.g., 12345, John Smith, Additional requirements"
-                        />
+                        {selectedFieldType === FIELD_TYPES.REVENUE_TYPE && (
+                          <select
+                            value={newProjectData.value}
+                            onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
+                            required
+                          >
+                            <option value="">Select revenue type</option>
+                            {REVENUE_TYPE_OPTIONS.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        )}
+                        
+                        {selectedFieldType === FIELD_TYPES.ACCOUNT_OWNER && (
+                          <select
+                            value={newProjectData.value}
+                            onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
+                            required
+                          >
+                            <option value="">Select account owner</option>
+                            {allTeamMembers.map(member => (
+                              <option key={member.id} value={member.full_name}>{member.full_name}</option>
+                            ))}
+                          </select>
+                        )}
+                        
+                        {selectedFieldType === FIELD_TYPES.BILLING_TYPE && (
+                          <select
+                            value={newProjectData.value}
+                            onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
+                            required
+                          >
+                            <option value="">Select billing type</option>
+                            {BILLING_TYPE_OPTIONS.map(option => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        )}
+                        
+                        {(selectedFieldType === FIELD_TYPES.CUSTOM || selectedFieldType === '') && (
+                          <input
+                            type="text"
+                            value={newProjectData.value}
+                            onChange={(e) => setNewProjectData({...newProjectData, value: e.target.value})}
+                            placeholder="e.g., 12345, John Smith, Additional requirements"
+                            required={selectedFieldType === FIELD_TYPES.CUSTOM}
+                          />
+                        )}
                       </div>
+                      
                       <div className="form-actions">
                         <button type="submit">Add Data</button>
-                        <button type="button" onClick={() => setShowAddDataForm(false)}>Cancel</button>
+                        <button type="button" onClick={() => {
+                          setShowAddDataForm(false);
+                          setSelectedFieldType('');
+                          setNewProjectData({ name: '', value: '' });
+                        }}>Cancel</button>
                       </div>
                     </form>
                   </div>
@@ -986,25 +1125,84 @@ const Projects: React.FC = () => {
                           <tr key={data.id} className={editingProjectData === data.id ? 'editing-row' : ''}>
                             <td>
                               {editingProjectData === data.id ? (
-                                <input
-                                  type="text"
-                                  className="edit-input"
-                                  value={editProjectDataForm.name}
-                                  onChange={(e) => setEditProjectDataForm({...editProjectDataForm, name: e.target.value})}
-                                />
+                                <div>
+                                  <select
+                                    className="edit-input"
+                                    value={editFieldType}
+                                    onChange={(e) => handleEditFieldTypeChange(e.target.value)}
+                                  >
+                                    <option value={FIELD_TYPES.REVENUE_TYPE}>{FIELD_TYPES.REVENUE_TYPE}</option>
+                                    <option value={FIELD_TYPES.ACCOUNT_OWNER}>{FIELD_TYPES.ACCOUNT_OWNER}</option>
+                                    <option value={FIELD_TYPES.BILLING_TYPE}>{FIELD_TYPES.BILLING_TYPE}</option>
+                                    <option value={FIELD_TYPES.CUSTOM}>{FIELD_TYPES.CUSTOM}</option>
+                                  </select>
+                                  {editFieldType === FIELD_TYPES.CUSTOM && (
+                                    <input
+                                      type="text"
+                                      className="edit-input"
+                                      value={editProjectDataForm.name}
+                                      onChange={(e) => setEditProjectDataForm({...editProjectDataForm, name: e.target.value})}
+                                      placeholder="Custom field name"
+                                      style={{marginTop: '4px'}}
+                                    />
+                                  )}
+                                </div>
                               ) : (
                                 data.name
                               )}
                             </td>
                             <td>
                               {editingProjectData === data.id ? (
-                                <input
-                                  type="text"
-                                  className="edit-input"
-                                  value={editProjectDataForm.value}
-                                  onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
-                                  placeholder="N/A"
-                                />
+                                <div>
+                                  {editFieldType === FIELD_TYPES.REVENUE_TYPE && (
+                                    <select
+                                      className="edit-input"
+                                      value={editProjectDataForm.value}
+                                      onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
+                                    >
+                                      <option value="">Select revenue type</option>
+                                      {REVENUE_TYPE_OPTIONS.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  
+                                  {editFieldType === FIELD_TYPES.ACCOUNT_OWNER && (
+                                    <select
+                                      className="edit-input"
+                                      value={editProjectDataForm.value}
+                                      onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
+                                    >
+                                      <option value="">Select account owner</option>
+                                      {allTeamMembers.map(member => (
+                                        <option key={member.id} value={member.full_name}>{member.full_name}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  
+                                  {editFieldType === FIELD_TYPES.BILLING_TYPE && (
+                                    <select
+                                      className="edit-input"
+                                      value={editProjectDataForm.value}
+                                      onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
+                                    >
+                                      <option value="">Select billing type</option>
+                                      {BILLING_TYPE_OPTIONS.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                  
+                                  {editFieldType === FIELD_TYPES.CUSTOM && (
+                                    <input
+                                      type="text"
+                                      className="edit-input"
+                                      value={editProjectDataForm.value}
+                                      onChange={(e) => setEditProjectDataForm({...editProjectDataForm, value: e.target.value})}
+                                      placeholder="Enter custom value"
+                                    />
+                                  )}
+                                </div>
                               ) : (
                                 data.value || 'N/A'
                               )}
