@@ -148,6 +148,63 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// Project data audit endpoint
+app.get('/api/projects/audit', async (req, res) => {
+  try {
+    // Query active projects and check for missing required data fields
+    const [projects] = await db.execute(`
+      SELECT 
+        hp.code,
+        hp.name as project_name,
+        COALESCE(hp.client_name, hc.name, CONCAT('Client ', hp.client_id)) as client_name,
+        hp.is_active,
+        hp.is_fixed_fee,
+        hp.billable,
+        MAX(CASE WHEN apd.name = 'Revenue Type' THEN apd.value END) as revenue_type,
+        MAX(CASE WHEN apd.name = 'Account Owner' THEN apd.value END) as account_owner,
+        MAX(CASE WHEN apd.name = 'Billing Type' THEN apd.value END) as billing_type,
+        CASE WHEN MAX(CASE WHEN apd.name = 'Revenue Type' THEN 1 ELSE 0 END) = 0 THEN 1 ELSE 0 END as missing_revenue_type,
+        CASE WHEN MAX(CASE WHEN apd.name = 'Account Owner' THEN 1 ELSE 0 END) = 0 THEN 1 ELSE 0 END as missing_account_owner,
+        CASE WHEN MAX(CASE WHEN apd.name = 'Billing Type' THEN 1 ELSE 0 END) = 0 THEN 1 ELSE 0 END as missing_billing_type
+      FROM harvest_projects hp
+      LEFT JOIN harvest_clients hc ON hp.client_id = hc.id
+      LEFT JOIN augusto_project_data apd ON hp.code = apd.project_code 
+        AND apd.name IN ('Revenue Type', 'Account Owner', 'Billing Type')
+      WHERE hp.is_active = 1 
+        AND hp.code LIKE '300%'
+        AND (hc.name != 'Augusto Digital' OR hc.name IS NULL)
+        AND (hp.client_name != 'Augusto Digital' OR hp.client_name IS NULL)
+      GROUP BY hp.code, hp.name, hp.client_name, hc.name, hp.client_id, hp.is_active, hp.is_fixed_fee, hp.billable
+      HAVING (missing_revenue_type = 1 OR missing_account_owner = 1 OR missing_billing_type = 1)
+      ORDER BY client_name, hp.code
+    `);
+
+    // Calculate summary statistics
+    let totalMissingRevenue = 0;
+    let totalMissingAccount = 0;
+    let totalMissingBilling = 0;
+    
+    projects.forEach(project => {
+      if (project.missing_revenue_type) totalMissingRevenue++;
+      if (project.missing_account_owner) totalMissingAccount++;
+      if (project.missing_billing_type) totalMissingBilling++;
+    });
+
+    res.json({
+      projects: projects,
+      summary: {
+        total_projects_with_issues: projects.length,
+        missing_revenue_type: totalMissingRevenue,
+        missing_account_owner: totalMissingAccount,
+        missing_billing_type: totalMissingBilling
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching project audit data:', error);
+    res.status(500).json({ error: 'Failed to fetch project audit data' });
+  }
+});
+
 // Get project details with team members and project data
 app.get('/api/projects/:code', async (req, res) => {
   const projectCode = req.params.code;
