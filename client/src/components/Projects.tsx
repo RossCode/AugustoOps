@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Badge } from './ui/badge';
 import './Projects.css';
 
 interface Project {
@@ -136,16 +141,7 @@ const Projects: React.FC = () => {
     description: '' 
   });
 
-  useEffect(() => {
-    fetchProjects();
-  }, [showInactive]);
-
-  useEffect(() => {
-    // Fetch all team members when component mounts for Account Owner dropdown
-    fetchAllTeamMembers();
-  }, []);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE}/api/projects?show_inactive=${showInactive}`);
       
@@ -161,7 +157,16 @@ const Projects: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showInactive]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    // Fetch all team members when component mounts for Account Owner dropdown
+    fetchAllTeamMembers();
+  }, []);
 
   const fetchProjectDetails = async (projectCode: string) => {
     try {
@@ -665,24 +670,24 @@ const Projects: React.FC = () => {
             <p>Manage project data and team assignments for client projects (300XXX codes only) • Organized by client</p>
           </div>
           <div className="header-actions">
-            <button
-              className={`sync-projects-button ${syncLoading ? 'loading' : ''}`}
+            <Button
               onClick={handleSyncProjects}
               disabled={syncLoading}
               title="Trigger n8n projects sync"
+              variant="outline"
             >
               {syncLoading ? (
                 <>
-                  <span className="loading-spinner"></span>
+                  <span className="loading-spinner mr-2"></span>
                   Syncing...
                 </>
               ) : (
                 <>
-                  <span className="sync-icon">🔄</span>
+                  <span className="mr-2">🔄</span>
                   Sync Projects
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -708,8 +713,8 @@ const Projects: React.FC = () => {
               Show inactive projects
             </label>
             <div className="filter-group">
-              <label htmlFor="project-search-filter">Search projects:</label>
-              <input
+              <Label htmlFor="project-search-filter">Search projects:</Label>
+              <Input
                 id="project-search-filter"
                 type="text"
                 placeholder="Search by project name, code, or client..."
@@ -739,61 +744,68 @@ const Projects: React.FC = () => {
               
               <div className="projects-grid">
                 {groupedProjects[clientName].map((project) => (
-                  <div key={project.id} className="project-card">
-                    <div className="project-header">
-                      <h3>{project.name}</h3>
-                      <div className="project-code">{project.code}</div>
-                    </div>
-                    
-                    <div className="project-info">
-                      <div className="project-details">
-                        <div className="project-status">
-                          <span className={`status-badge ${project.is_active ? 'active' : 'inactive'}`}>
-                            {project.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                          {project.billable ? (
-                            <span className="billable-badge">Billable</span>
-                          ) : (
-                            <span className="non-billable-badge">Non-billable</span>
-                          )}
-                          {project.is_fixed_fee ? (
-                            <span className="fee-badge">Fixed Fee</span>
-                          ) : (
-                            <span className="hourly-badge">Hourly</span>
-                          )}
-                        </div>
-                        
-                        <div className="project-budget">
-                          {project.is_fixed_fee ? (
-                            <div>Fee: {formatCurrency(project.fee)}</div>
-                          ) : (
-                            <div>Budget: {formatCurrency(project.budget)}</div>
-                          )}
-                          {project.budget_hours && (
-                            <div>Hours: {project.budget_hours}</div>
-                          )}
-                        </div>
-                        
-                        <div className="project-team">
-                          <div>Team Members: {project.team_member_count}</div>
-                          <div>Project Data: {project.project_data_count}</div>
-                        </div>
-                        
-                        <div className="project-dates">
-                          <div>Updated: {formatDate(project.updated_at)}</div>
+                  <Card key={project.id} className="project-card">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg">{project.name}</CardTitle>
+                          <CardDescription className="font-mono text-sm">{project.code}</CardDescription>
                         </div>
                       </div>
-                    </div>
+                    </CardHeader>
                     
-                    <div className="project-actions">
-                      <button 
-                        className="details-button"
+                    <CardContent className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={project.is_active ? "default" : "secondary"}>
+                          {project.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant={project.billable ? "default" : "outline"}>
+                          {project.billable ? 'Billable' : 'Non-billable'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {project.is_fixed_fee ? 'Fixed Fee' : 'Hourly'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="font-medium">
+                            {project.is_fixed_fee ? 'Fee:' : 'Budget:'}
+                          </span>
+                          <span>
+                            {formatCurrency(project.is_fixed_fee ? project.fee : project.budget)}
+                          </span>
+                        </div>
+                        {project.budget_hours && (
+                          <div className="flex justify-between">
+                            <span className="font-medium">Hours:</span>
+                            <span>{project.budget_hours}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="font-medium">Team Members:</span>
+                          <span>{project.team_member_count}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Project Data:</span>
+                          <span>{project.project_data_count}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium">Updated:</span>
+                          <span>{formatDate(project.updated_at)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    
+                    <CardFooter>
+                      <Button 
+                        className="w-full"
                         onClick={() => fetchProjectDetails(project.code)}
                       >
                         View Details
-                      </button>
-                    </div>
-                  </div>
+                      </Button>
+                    </CardFooter>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -814,14 +826,20 @@ const Projects: React.FC = () => {
       </main>
 
       {/* Project Details Modal */}
-      {showDetails && selectedProject && (
-        <div className="modal-overlay" onClick={() => setShowDetails(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{selectedProject.project.name}</h2>
-              <button className="close-button" onClick={() => setShowDetails(false)}>×</button>
+      {showDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-black/80" onClick={() => setShowDetails(false)}>
+          <div className="bg-card border rounded-lg p-6 max-w-6xl max-h-90vh overflow-y-auto w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">{selectedProject?.project.name}</h2>
+              <button 
+                onClick={() => setShowDetails(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                ×
+              </button>
             </div>
             
+            {selectedProject && (
             <div className="modal-body">
               <div className="project-overview">
                 <h3>Project Overview</h3>
@@ -1468,6 +1486,7 @@ const Projects: React.FC = () => {
                 )}
               </div>
             </div>
+            )}
           </div>
         </div>
       )}

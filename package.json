@@ -10,10 +10,16 @@
     "build": "cd client && npm run build",
     "install-deps": "npm install && cd server && npm install && cd ../client && npm install"
   },
-  "keywords": ["operations", "database", "settings", "n8n"],
+  "keywords": [
+    "operations",
+    "database",
+    "settings",
+    "n8n"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "shadcn": "^3.3.1"
   }
 }

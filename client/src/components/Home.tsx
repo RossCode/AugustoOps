@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
 import './Home.css';
 
 const Home: React.FC = () => {
@@ -12,66 +14,122 @@ const Home: React.FC = () => {
 
       <main className="home-content">
         <div className="tools-grid">
-          <div className="tool-card">
-            <div className="tool-icon">👥</div>
-            <h3>Team Manager</h3>
-            <p>Manage team member cost rates, internal rates, weekly capacity, and service lines</p>
-            <Link to="/team-members" className="tool-link">
-              Manage Team Members
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">👥</div>
+              <CardTitle>Team Manager</CardTitle>
+              <CardDescription>
+                Manage team member cost rates, internal rates, weekly capacity, and service lines
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/team-members">
+                  Manage Team Members
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card">
-            <div className="tool-icon">🏢</div>
-            <h3>Service Lines</h3>
-            <p>Create and manage service line categories and classifications</p>
-            <Link to="/service-lines" className="tool-link">
-              Manage Service Lines
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">🏢</div>
+              <CardTitle>Service Lines</CardTitle>
+              <CardDescription>
+                Create and manage service line categories and classifications
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/service-lines">
+                  Manage Service Lines
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card">
-            <div className="tool-icon">👔</div>
-            <h3>Roles</h3>
-            <p>Define and manage default roles and job functions</p>
-            <Link to="/roles" className="tool-link">
-              Manage Roles
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">👔</div>
+              <CardTitle>Roles</CardTitle>
+              <CardDescription>
+                Define and manage default roles and job functions
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/roles">
+                  Manage Roles
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card">
-            <div className="tool-icon">📋</div>
-            <h3>Projects</h3>
-            <p>Manage project data, team assignments, and project details</p>
-            <Link to="/projects" className="tool-link">
-              View Projects
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">📋</div>
+              <CardTitle>Projects</CardTitle>
+              <CardDescription>
+                Manage project data, team assignments, and project details
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/projects">
+                  View Projects
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card">
-            <div className="tool-icon">⚙️</div>
-            <h3>Admin Utilities</h3>
-            <p>System administration and data synchronization tools</p>
-            <Link to="/admin" className="tool-link">
-              Admin Panel
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">⚙️</div>
+              <CardTitle>Admin Utilities</CardTitle>
+              <CardDescription>
+                System administration and data synchronization tools
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/admin">
+                  Admin Panel
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card">
-            <div className="tool-icon">📊</div>
-            <h3>Project Data Audit</h3>
-            <p>Identify and complete missing project data fields for active projects</p>
-            <Link to="/audit" className="tool-link">
-              Audit Projects
-            </Link>
-          </div>
+          <Card className="tool-card">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">📊</div>
+              <CardTitle>Project Data Audit</CardTitle>
+              <CardDescription>
+                Identify and complete missing project data fields for active projects
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <Button asChild>
+                <Link to="/audit">
+                  Audit Projects
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
 
-          <div className="tool-card coming-soon">
-            <div className="tool-icon">💰</div>
-            <h3>Financial Reports</h3>
-            <p>Generate cost analysis and billing reports for projects</p>
-            <div className="coming-soon-badge">Coming Soon</div>
-          </div>
+          <Card className="tool-card relative opacity-75">
+            <CardHeader className="text-center">
+              <div className="tool-icon text-4xl mb-2">💰</div>
+              <CardTitle>Financial Reports</CardTitle>
+              <CardDescription>
+                Generate cost analysis and billing reports for projects
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="justify-center">
+              <div className="bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm font-medium">
+                Coming Soon
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </main>
 

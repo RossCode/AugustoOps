@@ -2,6 +2,8 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const helmet = require('helmet');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const { createTunnel } = require('tunnel-ssh');
 const fs = require('fs');
 require('dotenv').config();
@@ -10,8 +12,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'augusto-ops-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
 
 let db;
 let sshTunnel;
@@ -46,10 +62,10 @@ const createSSHTunnel = () => {
 const initializeDatabase = async () => {
   try {
     const useSSH = process.env.USE_SSH_TUNNEL === 'true';
-    
+
     if (useSSH) {
       console.log('Using SSH tunnel connection on port', process.env.DB_PORT || 3307);
-      
+
       db = await mysql.createConnection({
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
@@ -59,7 +75,7 @@ const initializeDatabase = async () => {
       });
     } else {
       console.log('Using direct database connection');
-      
+
       db = await mysql.createConnection({
         host: process.env.DB_HOST || 'localhost',
         user: process.env.DB_USER || 'root',
@@ -68,15 +84,28 @@ const initializeDatabase = async () => {
         port: 3306
       });
     }
-    
+
     console.log('Database connected to existing tables');
-    
+
     // Test query to verify data exists
     const [rows] = await db.execute('SELECT COUNT(*) as count FROM augusto_team_members');
     console.log('Team members count:', rows[0].count);
-    
+
     const [sampleRows] = await db.execute('SELECT full_name, default_cost_rate FROM augusto_team_members LIMIT 3');
     console.log('Sample team members:', sampleRows);
+
+    // Initialize Passport after database connection
+    const passport = require('./config/passport')(db);
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // Mount auth routes
+    const authRoutes = require('./routes/auth')(db);
+    const userRoutes = require('./routes/users')(db);
+    app.use('/api/auth', authRoutes);
+    app.use('/api/users', userRoutes);
+
+    console.log('Authentication system initialized');
   } catch (error) {
     console.error('Database connection failed:', error);
     process.exit(1);

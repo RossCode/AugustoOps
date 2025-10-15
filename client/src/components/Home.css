@@ -40,13 +40,7 @@
 }
 
 .tool-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  text-align: center;
-  position: relative;
 }
 
 .tool-card:hover {
@@ -54,59 +48,9 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.tool-card.coming-soon {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.tool-card.coming-soon:hover {
+.tool-card.relative.opacity-75:hover {
   transform: none;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.tool-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-}
-
-.tool-card h3 {
-  color: #333;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-}
-
-.tool-card p {
-  color: #666;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-}
-
-.tool-link {
-  display: inline-block;
-  background: #667eea;
-  color: white;
-  text-decoration: none;
-  padding: 0.8rem 2rem;
-  border-radius: 25px;
-  transition: background 0.3s ease;
-  font-weight: 600;
-}
-
-.tool-link:hover {
-  background: #5a67d8;
-  text-decoration: none;
-  color: white;
-}
-
-.coming-soon-badge {
-  background: #f7fafc;
-  border: 2px solid #e2e8f0;
-  color: #718096;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  display: inline-block;
 }
 
 .home-footer {
