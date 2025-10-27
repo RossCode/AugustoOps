@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { canConfigureReports, canViewReport, canApproveReport } = require('../middleware/reportAuth');
 
 /**
  * Report Management Routes
@@ -42,7 +43,7 @@ module.exports = (db) => {
    * POST /projects/:code/report-config
    * Create or update report configuration for a project
    */
-  router.post('/projects/:code/report-config', async (req, res) => {
+  router.post('/projects/:code/report-config', canConfigureReports(db), async (req, res) => {
     const { code } = req.params;
     const {
       frequency,
@@ -557,7 +558,7 @@ module.exports = (db) => {
    * PUT /reports/:id/approve
    * Approve a report (changes status to 'approved')
    */
-  router.put('/reports/:id/approve', async (req, res) => {
+  router.put('/reports/:id/approve', canApproveReport(db), async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -591,7 +592,7 @@ module.exports = (db) => {
    * POST /reports/:id/send
    * Trigger report sending via n8n webhook
    */
-  router.post('/reports/:id/send', async (req, res) => {
+  router.post('/reports/:id/send', canApproveReport(db), async (req, res) => {
     const { id } = req.params;
 
     try {
