@@ -105,7 +105,14 @@ const initializeDatabase = async () => {
     app.use('/api/auth', authRoutes);
     app.use('/api/users', userRoutes);
 
+    // Mount report routes
+    const reportRoutes = require('./routes/reports')(db);
+    const webhookRoutes = require('./routes/webhooks')(db);
+    app.use('/api', reportRoutes);
+    app.use('/api/webhooks', webhookRoutes);
+
     console.log('Authentication system initialized');
+    console.log('Report management system initialized');
   } catch (error) {
     console.error('Database connection failed:', error);
     process.exit(1);
