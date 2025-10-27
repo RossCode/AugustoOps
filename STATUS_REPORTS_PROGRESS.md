@@ -1,10 +1,10 @@
 # Status Reports Feature - Implementation Progress
 
-## ✅ COMPLETED (Phase 1)
+## ✅ COMPLETED - Backend Infrastructure (Phases 1-3)
 
-### Database Migration
-- **File Created**: `server/migrations/002_create_report_tables.sql`
-- **Tables**:
+### Phase 1: Database Migration ✅
+- **File Created**: [server/migrations/002_create_report_tables.sql](server/migrations/002_create_report_tables.sql)
+- **Tables Created** (6 total):
   1. ✅ `augusto_report_configs` - Per-project report settings
   2. ✅ `augusto_report_external_recipients` - External email recipients per project
   3. ✅ `augusto_report_internal_recipients` - Internal team member recipients
@@ -12,78 +12,62 @@
   5. ✅ `augusto_quickbooks_invoices` - Synced QB invoice data
   6. ✅ `augusto_harvest_time_entries` - Synced time tracking data
 
-**Next Action**: Run migration: `node server/run-migration.js server/migrations/002_create_report_tables.sql`
+**To Run Migration**: `node server/run-migration.js server/migrations/002_create_report_tables.sql`
 
 ---
 
-## 🔄 IN PROGRESS (Phase 2)
+### Phase 2: Backend API Routes ✅
+**Files Created**:
+- ✅ [server/routes/reports.js](server/routes/reports.js) - Main report management routes (23 endpoints)
+- ✅ [server/routes/webhooks.js](server/routes/webhooks.js) - n8n webhook integrations (4 endpoints)
+- ✅ Updated [server/index.js](server/index.js) - Registered new routes
 
-### Backend API Routes
-Need to create two route files following the existing pattern (`module.exports = (db) => { ... return router; }`):
+#### Report Routes (23 endpoints):
+- ✅ Report Configuration: GET, POST, DELETE `/api/projects/:code/report-config`
+- ✅ Recipient Management:
+  - GET `/api/projects/:code/report-recipients`
+  - POST/DELETE `/api/projects/:code/report-recipients/external/:id?`
+  - POST/DELETE `/api/projects/:code/report-recipients/internal/:id?`
+- ✅ Report Lifecycle:
+  - GET `/api/projects/:code/reports` - List reports
+  - POST `/api/projects/:code/reports/generate` - Generate new report
+  - GET `/api/reports/:id` - Get report details
+  - GET `/api/reports/:id/preview` - HTML preview
+  - GET `/api/reports/:id/pdf` - Download PDF
+  - PUT `/api/reports/:id/narrative` - Update PM notes
+  - PUT `/api/reports/:id/approve` - Approve for sending
+  - POST `/api/reports/:id/send` - Send via n8n
+  - DELETE `/api/reports/:id` - Delete draft
+  - GET `/api/reports/pending-review` - PM's pending reports
+- ✅ Data Retrieval:
+  - GET `/api/projects/:code/invoices`
+  - GET `/api/projects/:code/time-entries`
 
-####  File 1: `server/routes/reports.js`
-**Status**: Needs to be created properly
-
-**Endpoints to implement** (23 total):
-```javascript
-// Report Configuration (3)
-GET    /api/projects/:code/report-config
-POST   /api/projects/:code/report-config
-DELETE /api/projects/:code/report-config
-
-// Recipients (6)
-GET    /api/projects/:code/report-recipients
-POST   /api/projects/:code/report-recipients/external
-DELETE /api/projects/:code/report-recipients/external/:id
-POST   /api/projects/:code/report-recipients/internal
-DELETE /api/projects/:code/report-recipients/internal/:id
-
-// Report Management (9)
-GET    /api/projects/:code/reports
-POST   /api/projects/:code/reports/generate
-GET    /api/reports/:id
-GET    /api/reports/:id/preview
-GET    /api/reports/:id/pdf
-PUT    /api/reports/:id/narrative
-PUT    /api/reports/:id/approve
-POST   /api/reports/:id/send
-DELETE /api/reports/:id
-GET    /api/reports/pending-review
-
-// Data (2)
-GET    /api/projects/:code/invoices
-GET    /api/projects/:code/time-entries
-```
-
-#### File 2: `server/routes/webhooks.js`
-**Status**: Needs to be created
-
-**Endpoints** (3 webhooks):
-```javascript
-POST /api/webhooks/n8n/invoices          // Sync QB invoices
-POST /api/webhooks/n8n/time-entries      // Sync Harvest time
-GET  /api/webhooks/n8n/scheduled-reports // List projects needing reports today
-POST /api/webhooks/n8n/report-sent       // Mark report as sent
-```
-
-#### File 3: Update `server/index.js`
-Add after line 106:
-```javascript
-const reportRoutes = require('./routes/reports')(db);
-const webhookRoutes = require('./routes/webhooks')(db);
-app.use('/api', reportRoutes);
-app.use('/api/webhooks', webhookRoutes);
-```
+#### Webhook Routes (4 endpoints):
+- ✅ POST `/api/webhooks/n8n/invoices` - Sync QB invoices
+- ✅ POST `/api/webhooks/n8n/time-entries` - Sync Harvest time
+- ✅ GET `/api/webhooks/n8n/scheduled-reports` - List projects needing reports
+- ✅ POST `/api/webhooks/n8n/report-sent` - Mark report as sent
 
 ---
 
-## ⏳ PENDING
+### Phase 3: Report Services ✅
+**Files Created**:
+- ✅ [server/services/reportGenerator.js](server/services/reportGenerator.js)
+  - Calculates budget vs. spending by task
+  - Aggregates time entries by date range
+  - Compiles invoice status (paid, open, overdue)
+  - Supports time-tracked and fixed-cost tasks
+  - Next scheduled report date calculation
+- ✅ [server/services/pdfGenerator.js](server/services/pdfGenerator.js)
+  - Generates professional HTML report template
+  - PDF generation stub (full Puppeteer implementation in Phase 5)
 
-### Phase 3: Report Services
-Create:
-- `server/services/reportGenerator.js` - Calculate budget, spending, etc.
-- `server/services/pdfGenerator.js` - Generate PDF from HTML template
-- `server/templates/reportTemplate.html` - PDF template
+**✅ Committed**: All backend work (Phases 1-3) committed to git
+
+---
+
+## ⏳ PENDING - Frontend & Integration (Phases 4-9)
 
 ### Phase 4: Frontend Components
 Create:
