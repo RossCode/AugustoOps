@@ -12,6 +12,8 @@ import Roles from './components/Roles';
 import Projects from './components/Projects';
 import ProjectAudit from './components/ProjectAudit';
 import Admin from './components/Admin';
+import ReportReview from './components/ReportReview';
+import ReportPreview from './components/ReportPreview';
 import './App.css';
 
 function App() {
@@ -66,6 +68,18 @@ function App() {
             <Route path="/admin" element={
               <ProtectedRoute roles={['Admin']}>
                 <Admin />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/reports/review" element={
+              <ProtectedRoute roles={['Project Manager', 'Account Manager', 'Operations Leader', 'Admin']}>
+                <ReportReview />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/reports/:id" element={
+              <ProtectedRoute roles={['Project Manager', 'Account Manager', 'Operations Leader', 'Admin']}>
+                <ReportPreview />
               </ProtectedRoute>
             } />
           </Routes>
