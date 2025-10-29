@@ -1485,6 +1485,30 @@ const Projects: React.FC = () => {
                   <p>No fixed cost tasks available.</p>
                 )}
               </div>
+
+              {/* Status Reports Section */}
+              <div className="status-reports-section">
+                <div className="section-header">
+                  <h3>Status Reports</h3>
+                </div>
+                <div className="reports-info">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Bi-weekly project status reports with financial tracking, invoice status, and PM narratives.
+                  </p>
+                  <div className="flex gap-2">
+                    <Link to="/reports/review">
+                      <Button variant="outline">
+                        View All Reports
+                      </Button>
+                    </Link>
+                    <Link to={`/reports/review?project=${selectedProject?.project.code}`}>
+                      <Button>
+                        View Reports for This Project
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
             )}
           </div>

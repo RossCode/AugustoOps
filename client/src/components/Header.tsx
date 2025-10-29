@@ -27,6 +27,9 @@ const Header: React.FC = () => {
           <nav className="header-nav">
             <Link to="/">Home</Link>
             <Link to="/projects">Projects</Link>
+            {user.roles?.includes('Project Manager') || user.roles?.includes('Account Manager') || user.roles?.includes('Operations Leader') || user.roles?.includes('Admin') ? (
+              <Link to="/reports/review">Reports</Link>
+            ) : null}
             {user.roles?.includes('Operations Leader') || user.roles?.includes('Admin') ? (
               <Link to="/audit">Audit</Link>
             ) : null}

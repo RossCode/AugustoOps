@@ -116,18 +116,20 @@ const Home: React.FC = () => {
             </CardFooter>
           </Card>
 
-          <Card className="tool-card relative opacity-75">
+          <Card className="tool-card">
             <CardHeader className="text-center">
-              <div className="tool-icon text-4xl mb-2">💰</div>
-              <CardTitle>Financial Reports</CardTitle>
+              <div className="tool-icon text-4xl mb-2">📊</div>
+              <CardTitle>Status Reports</CardTitle>
               <CardDescription>
-                Generate cost analysis and billing reports for projects
+                Review and approve bi-weekly project status reports with financial tracking
               </CardDescription>
             </CardHeader>
             <CardFooter className="justify-center">
-              <div className="bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm font-medium">
-                Coming Soon
-              </div>
+              <Button asChild>
+                <Link to="/reports/review">
+                  Review Reports
+                </Link>
+              </Button>
             </CardFooter>
           </Card>
         </div>
