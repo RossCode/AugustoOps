@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
+import { createOrUpdateReportConfig } from '../api/reports';
 import './Projects.css';
 
 interface Project {
@@ -133,12 +134,22 @@ const Projects: React.FC = () => {
   const [editTeamMemberForm, setEditTeamMemberForm] = useState({ cost_rate: '', sow_hours: '' });
   const [editProjectDataForm, setEditProjectDataForm] = useState({ name: '', value: '' });
   const [editFieldType, setEditFieldType] = useState('');
-  const [editFixedTaskForm, setEditFixedTaskForm] = useState({ 
-    task_id: '', 
-    billable_amount: '', 
-    cost_amount: '', 
-    date: '', 
-    description: '' 
+  const [editFixedTaskForm, setEditFixedTaskForm] = useState({
+    task_id: '',
+    billable_amount: '',
+    cost_amount: '',
+    date: '',
+    description: ''
+  });
+
+  // Report configuration state
+  const [showReportConfigForm, setShowReportConfigForm] = useState(false);
+  const [reportConfigForm, setReportConfigForm] = useState({
+    frequency: 'bi-weekly',
+    send_day: 'Tuesday',
+    send_time: '10:00',
+    reporting_period_weeks: 2,
+    is_active: true
   });
 
   const fetchProjects = useCallback(async () => {
@@ -609,13 +620,34 @@ const Projects: React.FC = () => {
 
   const handleCancelEditFixedTask = () => {
     setEditingFixedTask(null);
-    setEditFixedTaskForm({ 
-      task_id: '', 
-      billable_amount: '', 
-      cost_amount: '', 
-      date: '', 
-      description: '' 
+    setEditFixedTaskForm({
+      task_id: '',
+      billable_amount: '',
+      cost_amount: '',
+      date: '',
+      description: ''
     });
+  };
+
+  const handleConfigureReports = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+
+    try {
+      await createOrUpdateReportConfig(selectedProject.project.code, {
+        frequency: reportConfigForm.frequency as 'weekly' | 'bi-weekly' | 'monthly',
+        send_day: reportConfigForm.send_day,
+        send_time: reportConfigForm.send_time,
+        reporting_period_weeks: reportConfigForm.reporting_period_weeks,
+        is_active: reportConfigForm.is_active
+      });
+
+      alert('Report configuration saved successfully!');
+      setShowReportConfigForm(false);
+    } catch (error) {
+      console.error('Error saving report config:', error);
+      alert('Failed to save report configuration');
+    }
   };
 
   const formatCurrency = (amount?: number) => {
@@ -1490,11 +1522,86 @@ const Projects: React.FC = () => {
               <div className="status-reports-section">
                 <div className="section-header">
                   <h3>Status Reports</h3>
+                  <button
+                    className="action-button"
+                    onClick={() => setShowReportConfigForm(!showReportConfigForm)}
+                  >
+                    {showReportConfigForm ? 'Cancel' : 'Configure Reports'}
+                  </button>
                 </div>
+
                 <div className="reports-info">
                   <p className="text-sm text-gray-600 mb-4">
-                    Bi-weekly project status reports with financial tracking, invoice status, and PM narratives.
+                    Automated bi-weekly project status reports with financial tracking, invoice status, and PM narratives.
                   </p>
+
+                  {showReportConfigForm && (
+                    <div className="form-container" style={{marginBottom: '1rem'}}>
+                      <form onSubmit={handleConfigureReports}>
+                        <div className="form-group">
+                          <label>Frequency:</label>
+                          <select
+                            value={reportConfigForm.frequency}
+                            onChange={(e) => setReportConfigForm({...reportConfigForm, frequency: e.target.value})}
+                            required
+                          >
+                            <option value="weekly">Weekly</option>
+                            <option value="bi-weekly">Bi-weekly</option>
+                            <option value="monthly">Monthly</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Send Day:</label>
+                          <select
+                            value={reportConfigForm.send_day}
+                            onChange={(e) => setReportConfigForm({...reportConfigForm, send_day: e.target.value})}
+                            required
+                          >
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Send Time:</label>
+                          <input
+                            type="time"
+                            value={reportConfigForm.send_time}
+                            onChange={(e) => setReportConfigForm({...reportConfigForm, send_time: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Reporting Period (weeks):</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="8"
+                            value={reportConfigForm.reporting_period_weeks}
+                            onChange={(e) => setReportConfigForm({...reportConfigForm, reporting_period_weeks: parseInt(e.target.value)})}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={reportConfigForm.is_active}
+                              onChange={(e) => setReportConfigForm({...reportConfigForm, is_active: e.target.checked})}
+                            />
+                            {' '}Enable automated reports
+                          </label>
+                        </div>
+                        <div className="form-actions">
+                          <button type="submit">Save Configuration</button>
+                          <button type="button" onClick={() => setShowReportConfigForm(false)}>Cancel</button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <Link to="/reports/review">
                       <Button variant="outline">
